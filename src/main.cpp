@@ -249,6 +249,7 @@ public:
   std::string shader;
   std::filesystem::path shadersBasePath;
   int fpsLimit;
+  bool publishLayers;
 
   Args(int argc, char *argv[])
   {
@@ -256,6 +257,7 @@ public:
     program.add_argument("shader");
     program.add_argument("--shaders-base").default_value(std::filesystem::path("./shaders"));
     program.add_argument("--fps-limit").default_value(120).scan<'i', int>();
+    program.add_argument("--publish-layers").default_value(false).implicit_value(true);
 
     try
     {
@@ -278,6 +280,7 @@ public:
     }
 
     fpsLimit = program.get<int>("--fps-limit");
+    publishLayers = program.get<bool>("--publish-layers");
   }
 
   std::filesystem::path shaderPath() { return shadersBasePath / shader; }
@@ -566,6 +569,11 @@ int main(int argc, char *argv[])
     }
 
     pixelserver::send(outPixels[shaderManager.size() - 1]);
+    if (args.publishLayers)
+    {
+      pixelserver::sendLayers(outPixels[0], shaderManager.size());
+    }
+
     timer.delayUntilNextFrame(tick);
     frameCount++;
   }
