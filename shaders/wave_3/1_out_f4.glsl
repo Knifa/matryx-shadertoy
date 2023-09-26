@@ -32,7 +32,7 @@ mat3[3] region3x3(sampler2D sampler, vec2 uv)
     vec4[9] region;
 
     for (int i = 0; i < 9; i++) {
-        region[i] = read_wrapped_coord(sampler, uv + kpos(i));
+        region[i] = read_coord_wrap(sampler, uv + kpos(i));
 
         // Some bullshit here to make it Nice.
         region[i] = pow(region[i], vec4(1.25));
@@ -93,7 +93,7 @@ vec4 render()
     x = clamp(x, 0.0, 1.0);
     // x = smoothstep(0.0, 1.0, x);
 
-    float lx = pow(x, 1.0);
+    float lx = pow(x, 1.1);
     float l = remap(
         lx,
         0.0, 1.0,
@@ -137,8 +137,6 @@ vec4 render()
     // return vec4(LCH_TO_SRGB(vec3(50.0, 50.0, h)), 1.0);
     // return vec4(h / 360.0, h / 360.0, h / 360.0, 1.0);
     // return vec4(uv.x, 0.0, 0.0, 1.0);
-
-    return vec4(vec3(h), 1.0);
 
     // return vec4(LAB_TO_SRGB(
     //     vec3(
