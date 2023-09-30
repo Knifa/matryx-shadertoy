@@ -1,12 +1,12 @@
+// const int SEARCH_RADIUS = 8;
 const int SEARCH_RADIUS = 2;
-// const int SEARCH_RADIUS = 2;
 const int SEARCH_DIAMETER = 2 * SEARCH_RADIUS + 1;
 
 const float SEARCH_RADIUS_F = float(SEARCH_RADIUS);
 const float SEARCH_DIAMETER_F = float(SEARCH_DIAMETER);
 
 vec4 read(int x, int y) {
-    return read_wrapped_coord(buffGrid, coord + vec2(x, y));
+    return read_coord_wrap(buffGrid, coord + vec2(x, y));
 }
 
 vec4 grow() {
@@ -49,7 +49,7 @@ vec4 grow() {
 }
 
 vec4 init() {
-    float x = rand_rand();
+    float x = rand_random();
     return vec4(x);
 }
 

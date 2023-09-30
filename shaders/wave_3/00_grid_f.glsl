@@ -1,4 +1,4 @@
-const int SEARCH_RADIUS = 2;
+const int SEARCH_RADIUS = 4;
 const int SEARCH_DIAMETER = 2 * SEARCH_RADIUS + 1;
 
 const float SEARCH_RADIUS_F = float(SEARCH_RADIUS);
@@ -60,14 +60,14 @@ float read(vec2 coord_) {
     //     return 1.0;
     // }
 
-    // return read_coord_wrap(buff0, coord).r;
-    // return read_coord_default(buff0, coord_, vec4(rand_random())).r;
-    return read_coord_mirror(buff0, coord_).r;
+    // return read_coord_wrap(buff00, coord_).r;
+    return read_coord_default(buff00, coord_, vec4(rand_random())).r;
+    // return read_coord_mirror(buff00, coord_).r;
 }
 
 float grow() {
     float lval = read(vec2(0.0, 0.0));
-    float val = lval * (1.0 - rand_range(0.1, 0.2) * timeDelta * 0.15);
+    float val = lval * (1.0 - rand_range(0.1, 0.2) * timeDelta * 0.20);
 
     float range_mul = sin(time * (1.0 / 60.0) * PI2);
     range_mul = 1.0 + range_mul * 0.025;

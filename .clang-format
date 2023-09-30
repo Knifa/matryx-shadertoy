@@ -1,7 +1,8 @@
 UseTab: false
 IndentWidth: 2
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Attach
 AllowShortIfStatementsOnASingleLine: false
 IndentCaseLabels: false
 ColumnLimit: 100
 NamespaceIndentation: Inner
+

@@ -102,7 +102,7 @@ vec4 render()
     // vec3 o = convolution(sharpen0, buff90, coord.xy / resolution.xy)
         // * convolution(gaussian_blur, buff90, coord.xy / resolution.xy);
 
-    vec4 o = read_wrapped_coord(buff90, coord);
+    vec4 o = read_coord_wrap(buff90, coord);
     o = clamp(o, 0.0, 1.0);
 
     return vec4(vec3(o), 1.0);

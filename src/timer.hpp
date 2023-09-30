@@ -4,10 +4,8 @@
 #include <iostream>
 #include <thread>
 
-namespace timer
-{
-class TimerTick
-{
+namespace timer {
+class TimerTick {
 public:
   std::chrono::steady_clock::time_point start;
   std::chrono::steady_clock::time_point last;
@@ -20,8 +18,7 @@ public:
             std::chrono::steady_clock::time_point now);
 };
 
-class Timer
-{
+class Timer {
 private:
   std::chrono::steady_clock::time_point start;
   std::chrono::steady_clock::time_point last;

@@ -20,28 +20,23 @@
 #include "pixelserver.hpp"
 #include "timer.hpp"
 
-struct ShaderLocation
-{
+struct ShaderLocation {
   std::string name;
   int startingLine;
 };
 
-class ShaderErrorParser
-{
+class ShaderErrorParser {
 private:
   std::vector<ShaderLocation> shaderLocations;
 
 public:
   ShaderErrorParser() : shaderLocations() {}
 
-  ShaderErrorParser(std::vector<ShaderLocation> shaderLocations) : shaderLocations(shaderLocations)
-  {
-  }
+  ShaderErrorParser(std::vector<ShaderLocation> shaderLocations)
+      : shaderLocations(shaderLocations) {}
 
-  void parse(std::string error)
-  {
-    if (shaderLocations.size() == 0)
-    {
+  void parse(std::string error) {
+    if (shaderLocations.size() == 0) {
       std::cerr << error << std::endl;
       return;
     }
@@ -49,29 +44,26 @@ public:
     std::vector<std::string> lines;
     std::string line;
     std::istringstream stream(error);
-    while (std::getline(stream, line))
-    {
+    while (std::getline(stream, line)) {
       lines.push_back(line);
     }
 
-    for (auto &line : lines)
-    {
+    for (auto &line : lines) {
       auto colonPos = line.find(':');
-      if (colonPos == std::string::npos)
-      {
+      if (colonPos == std::string::npos) {
         continue;
       }
 
       auto messagePos = line.find(':', colonPos + 1);
-      if (messagePos == std::string::npos)
-      {
+      if (messagePos == std::string::npos) {
         continue;
       }
 
       auto lineNumber = std::stoi(line.substr(colonPos + 1)) - 1;
       auto shaderLocation = std::find_if(shaderLocations.rbegin(), shaderLocations.rend(),
-                                         [lineNumber](ShaderLocation &shaderLocation)
-                                         { return shaderLocation.startingLine <= lineNumber; });
+                                         [lineNumber](ShaderLocation &shaderLocation) {
+                                           return shaderLocation.startingLine <= lineNumber;
+                                         });
 
       auto shaderName = shaderLocation->name;
       auto shaderLine = lineNumber - shaderLocation->startingLine + 1;
@@ -83,33 +75,28 @@ public:
   }
 };
 
-enum class ShaderDataType
-{
+enum class ShaderDataType {
   UintVec4,
   Float,
   FloatVec4,
 };
 
-class BaseShader
-{
+class BaseShader {
 public:
   GLuint program;
   GLuint fragmentShader;
 
-  BaseShader(ShaderDataType type, GLuint vertexShader, std::string fragmentShaderSource,
-             ShaderErrorParser &errorParser)
-  {
+  BaseShader(GLuint vertexShader, std::string fragmentShaderSource,
+             ShaderErrorParser &errorParser) {
     program = glCreateProgram();
 
-    if (program == 0)
-    {
+    if (program == 0) {
       std::cerr << "Failed to create shader program" << std::endl;
       throw;
     }
 
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    if (fragmentShader == 0)
-    {
+    if (fragmentShader == 0) {
       std::cerr << "Failed to create fragment shader" << std::endl;
       throw;
     }
@@ -120,8 +107,7 @@ public:
 
     GLint shaderCompiled;
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &shaderCompiled);
-    if (shaderCompiled == GL_FALSE)
-    {
+    if (shaderCompiled == GL_FALSE) {
       std::cerr << "Failed to compile fragment shader" << std::endl;
 
       GLint logLength;
@@ -144,14 +130,12 @@ public:
 
     GLint programLinked;
     glGetProgramiv(program, GL_LINK_STATUS, &programLinked);
-    if (programLinked == GL_FALSE)
-    {
+    if (programLinked == GL_FALSE) {
       std::cerr << "Failed to link program" << std::endl;
       GLint logLength;
       glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
 
-      if (logLength > 0)
-      {
+      if (logLength > 0) {
         char *log = new char[logLength];
         glGetProgramInfoLog(program, logLength, &logLength, log);
         std::cerr << log << std::endl;
@@ -164,11 +148,10 @@ public:
   }
 };
 
-class Shader : public BaseShader
-{
+class Shader : public BaseShader {
 public:
-  GLuint fbTextureFront;
-  GLuint fbTextureBack;
+  const std::filesystem::path path;
+  const ShaderDataType type;
 
   GLint timeLoc;
   GLint timeDeltaLoc;
@@ -176,29 +159,37 @@ public:
   GLint buffPrevLoc;
   GLint frameLoc;
 
-  Shader(ShaderDataType type, GLuint vertexShader, std::string fragmentShaderSource,
-         int bufferCount, ShaderErrorParser &errorParser)
-      : BaseShader(type, vertexShader, fragmentShaderSource, errorParser)
-  {
+  Shader(std::filesystem::path path, ShaderDataType type, GLuint vertexShader,
+         std::string fragmentShaderSource, int bufferCount, ShaderErrorParser &errorParser)
+      : BaseShader(vertexShader, fragmentShaderSource, errorParser), path(path), type(type) {
     timeLoc = glGetUniformLocation(program, "time");
     timeDeltaLoc = glGetUniformLocation(program, "timeDelta");
     frameLoc = glGetUniformLocation(program, "frame");
     buffPrevLoc = glGetUniformLocation(program, "buffPrev");
 
     buffLocs.resize(bufferCount);
-    for (auto i = 0; i < bufferCount; i++)
-    {
+    for (auto i = 0; i < bufferCount; i++) {
       buffLocs[i] = glGetUniformLocation(program, ("_buff" + std::to_string(i)).c_str());
     }
+  }
+};
 
-    fbTextureFront = 0;
-    fbTextureBack = 0;
+class BufferManager {
+public:
+  std::vector<GLuint> fronts;
+  std::vector<GLuint> backs;
 
-    GLint glInternalFormat;
-    GLenum glFormat;
-    GLenum glType;
-    switch (type)
-    {
+  BufferManager() : fronts(), backs() {}
+
+  void add(ShaderDataType type) {
+    GLuint front;
+    GLuint back;
+
+    GLint glInternalFormat = 0;
+    GLenum glFormat = 0;
+    GLenum glType = 0;
+
+    switch (type) {
     case ShaderDataType::UintVec4:
       glInternalFormat = GL_RGBA8;
       glFormat = GL_RGBA;
@@ -216,78 +207,33 @@ public:
       break;
     }
 
-    for (auto fbTexture : {&fbTextureFront, &fbTextureBack})
-    {
-      glGenTextures(1, fbTexture);
-      glBindTexture(GL_TEXTURE_2D, *fbTexture);
+    front = 0;
+    back = 0;
+
+    for (auto tex : {&front, &back}) {
+      glGenTextures(1, tex);
+      glBindTexture(GL_TEXTURE_2D, *tex);
       glTexImage2D(GL_TEXTURE_2D, 0, glInternalFormat, gl::width, gl::height, 0, glFormat, glType,
                    NULL);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-      if (glGetError() != GL_NO_ERROR)
-      {
+      if (glGetError() != GL_NO_ERROR) {
         std::cerr << "Failed to create framebuffer texture" << std::endl;
         throw;
       }
     }
+
+    fronts.push_back(front);
+    backs.push_back(back);
   }
 
-  void swap()
-  {
-    GLuint temp = fbTextureFront;
-    fbTextureFront = fbTextureBack;
-    fbTextureBack = temp;
-  }
+  void swap(int index) { std::swap(fronts[index], backs[index]); }
 };
 
-class Args
-{
-public:
-  std::string shader;
-  std::filesystem::path shadersBasePath;
-  int fpsLimit;
-  bool publishLayers;
-
-  Args(int argc, char *argv[])
-  {
-    argparse::ArgumentParser program("matryx_shadertoy");
-    program.add_argument("shader");
-    program.add_argument("--shaders-base").default_value(std::filesystem::path("./shaders"));
-    program.add_argument("--fps-limit").default_value(120).scan<'i', int>();
-    program.add_argument("--publish-layers").default_value(false).implicit_value(true);
-
-    try
-    {
-      program.parse_args(argc, argv);
-    }
-    catch (const std::runtime_error &err)
-    {
-      std::cout << err.what() << std::endl;
-      std::cout << program;
-      throw;
-    }
-
-    shadersBasePath = program.get<std::filesystem::path>("--shaders-base");
-    shader = program.get<std::string>("shader");
-
-    if (!std::filesystem::exists(shaderPath()))
-    {
-      std::cerr << "Shader does not exist" << std::endl;
-      throw;
-    }
-
-    fpsLimit = program.get<int>("--fps-limit");
-    publishLayers = program.get<bool>("--publish-layers");
-  }
-
-  std::filesystem::path shaderPath() { return shadersBasePath / shader; }
-};
-
-class ShaderManager
-{
+class ShaderManager {
 private:
   int preludeLineCounter = 0;
   std::string preludeSource;
@@ -296,8 +242,7 @@ private:
 public:
   std::vector<Shader *> shaderObjects;
 
-  ShaderManager(std::filesystem::path shadersBaseDirPath, std::string shaderName)
-  {
+  ShaderManager(std::filesystem::path shadersBaseDirPath, std::string shaderName) {
     std::filesystem::path preludeDirPath = shadersBaseDirPath / "prelude";
     std::filesystem::path shaderDirPath = shadersBaseDirPath / shaderName;
 
@@ -311,12 +256,10 @@ public:
     std::vector<std::filesystem::path> shaderFiles;
     std::vector<std::filesystem::path> shaderPreludeFiles;
 
-    for (const auto &entry : std::filesystem::directory_iterator(preludeDirPath))
-    {
+    for (const auto &entry : std::filesystem::directory_iterator(preludeDirPath)) {
       auto path = entry.path();
 
-      if (path.extension() != ".glsl")
-      {
+      if (path.extension() != ".glsl") {
         continue;
       }
 
@@ -324,22 +267,17 @@ public:
       preludeFiles.push_back(path);
     }
 
-    for (const auto &entry : std::filesystem::directory_iterator(shaderDirPath))
-    {
+    for (const auto &entry : std::filesystem::directory_iterator(shaderDirPath)) {
       auto path = entry.path();
 
-      if (path.extension() != ".glsl")
-      {
+      if (path.extension() != ".glsl") {
         continue;
       }
 
-      if (path.filename().string().starts_with("prelude"))
-      {
+      if (path.filename().string().starts_with("prelude")) {
         std::cout << "SHADER PRELUDE: Found" << path << std::endl;
         shaderPreludeFiles.push_back(path);
-      }
-      else
-      {
+      } else {
         std::cout << "SHADER: Found " << path << std::endl;
         shaderFiles.push_back(path);
       }
@@ -372,15 +310,13 @@ public:
       std::string bufferDecls = "";
       std::map<std::string, std::string> bufferPrefixToInternal;
 
-      for (auto i = 0; i < shaderFiles.size(); i++)
-      {
+      for (auto i = 0; i < shaderFiles.size(); i++) {
         auto &file = shaderFiles[i];
         auto baseName = file.stem().string();
 
         auto prefix = baseName.substr(0, baseName.find('_'));
         auto primaryPrefixIndex = prefix.find('-');
-        if (primaryPrefixIndex == std::string::npos)
-        {
+        if (primaryPrefixIndex == std::string::npos) {
           primaryPrefixIndex = prefix.size();
         }
         auto primaryPrefix = prefix.substr(0, primaryPrefixIndex);
@@ -403,8 +339,7 @@ public:
         bufferPrefixToInternal[buffPrefix] = buffInternal;
       }
 
-      for (auto &pair : bufferPrefixToInternal)
-      {
+      for (auto &pair : bufferPrefixToInternal) {
         auto buffPrefix = pair.first;
         auto bufferInternal = pair.second;
 
@@ -419,14 +354,12 @@ public:
 
     std::cout << "PRELUDE LOCATIONS: " << std::endl;
 
-    for (const auto &location : preludeLocations)
-    {
+    for (const auto &location : preludeLocations) {
       std::cout << std::setw(4) << location.startingLine << " " << location.name << std::endl;
     }
 
-    for (const auto &path : shaderFiles)
-    {
-      std::cout << "BUILDING SHADER: " << path << std::endl;
+    for (const auto &path : shaderFiles) {
+      std::cout << "BUILDING SHADER: " << path;
 
       auto source = gl::getShaderSource(path);
       source = preludeSource + source;
@@ -435,30 +368,29 @@ public:
       shaderLocations.push_back({path, preludeLineCounter});
 
       ShaderDataType type = ShaderDataType::UintVec4;
-      if (path.stem().string().ends_with("_f"))
-      {
+      if (path.stem().string().ends_with("_f")) {
         type = ShaderDataType::Float;
-      }
-      else if (path.stem().string().ends_with("_f4"))
-      {
+        std::cout << " (FLOAT)" << std::endl;
+      } else if (path.stem().string().ends_with("_f4")) {
         type = ShaderDataType::FloatVec4;
+        std::cout << " (FLOAT VEC4)" << std::endl;
+      } else {
+        std::cout << " (UINT VEC4)" << std::endl;
       }
 
       ShaderErrorParser ShaderErrorParser(shaderLocations);
       Shader *shader =
-          new Shader(type, vertexShader, source, shaderFiles.size(), ShaderErrorParser);
+          new Shader(path, type, vertexShader, source, shaderFiles.size(), ShaderErrorParser);
 
       shaderObjects.push_back(shader);
     }
 
-    for (auto i = 0; i < shaderObjects.size(); i++)
-    {
+    for (auto i = 0; i < shaderObjects.size(); i++) {
       auto &shader = shaderObjects[i];
       glUseProgram(shader->program);
 
       glUniform1i(shader->buffPrevLoc, i == 0 ? 0 : i - 1);
-      for (auto j = 0; j < shader->buffLocs.size(); j++)
-      {
+      for (auto j = 0; j < shader->buffLocs.size(); j++) {
         glUniform1i(shader->buffLocs[j], j);
       }
     }
@@ -469,8 +401,7 @@ public:
   Shader *operator[](int index) { return shaderObjects[index]; }
 
 private:
-  void addPrelude(const std::string &name, const std::string &source)
-  {
+  void addPrelude(const std::string &name, const std::string &source) {
     preludeSource += source;
 
     auto numLines = std::count(source.begin(), source.end(), '\n');
@@ -478,45 +409,96 @@ private:
     preludeLineCounter += numLines;
   }
 
-  void addPreludeFiles(const std::vector<std::filesystem::path> &paths)
-  {
-    for (const auto &path : paths)
-    {
+  void addPreludeFiles(const std::vector<std::filesystem::path> &paths) {
+    for (const auto &path : paths) {
       auto source = gl::getShaderSource(path);
       addPrelude(path, source);
     }
   }
 };
 
-int main(int argc, char *argv[])
-{
+class Args {
+public:
+  std::string shader;
+  std::filesystem::path shadersBasePath;
+  int fpsLimit;
+  bool publishLayers;
+  float timeScale;
+  int debugBuffer;
+
+  Args(int argc, char *argv[]) {
+    argparse::ArgumentParser program("matryx_shadertoy");
+
+    program.add_argument("shader");
+    program.add_argument("--shaders-base").default_value(std::filesystem::path("./shaders"));
+
+    program.add_argument("--debug-buffer").default_value(-1).scan<'i', int>();
+    program.add_argument("--fps-limit").default_value(120).scan<'i', int>();
+    program.add_argument("--publish-layers").default_value(false).implicit_value(true);
+    program.add_argument("--time-scale").default_value(1.0f).scan<'f', float>();
+
+    try {
+      program.parse_args(argc, argv);
+    } catch (const std::runtime_error &err) {
+      std::cout << err.what() << std::endl;
+      std::cout << program;
+      throw;
+    }
+
+    shadersBasePath = program.get<std::filesystem::path>("--shaders-base");
+    shader = program.get<std::string>("shader");
+    if (!std::filesystem::exists(shaderPath())) {
+      std::cerr << "Shader does not exist" << std::endl;
+      throw;
+    }
+
+    debugBuffer = program.get<int>("--debug-buffer");
+    fpsLimit = program.get<int>("--fps-limit");
+    publishLayers = program.get<bool>("--publish-layers");
+    timeScale = program.get<float>("--time-scale");
+  }
+
+  std::filesystem::path shaderPath() { return shadersBasePath / shader; }
+};
+
+int main(int argc, char *argv[]) {
   Args args(argc, argv);
 
   gl::setup();
   pixelserver::setup(gl::width, gl::height);
 
-  ShaderManager shaderManager(args.shadersBasePath, args.shader);
+  ShaderManager shaderManager = ShaderManager(args.shadersBasePath, args.shader);
+  if (args.debugBuffer != -1 && args.debugBuffer >= shaderManager.shaderObjects.size()) {
+    std::cerr << "Invalid debug buffer: " << args.debugBuffer << ", but only "
+              << shaderManager.shaderObjects.size() << " buffers exist" << std::endl;
+    return 1;
+  }
+
+  BufferManager bufferManager = BufferManager();
+  for (auto shader : shaderManager.shaderObjects) {
+    bufferManager.add(shader->type);
+  }
+
+  int targetBuffer =
+      args.debugBuffer == -1 ? shaderManager.shaderObjects.size() - 1 : args.debugBuffer;
 
   GLuint fb;
   glGenFramebuffers(1, &fb);
-  if (glGetError() != GL_NO_ERROR)
-  {
+  if (glGetError() != GL_NO_ERROR) {
     std::cerr << "Failed to create framebuffer" << std::endl;
     return 1;
   }
 
   GLuint renderBuffer;
   glGenRenderbuffers(1, &renderBuffer);
-  if (glGetError() != GL_NO_ERROR)
-  {
+  if (glGetError() != GL_NO_ERROR) {
     std::cerr << "Failed to create renderbuffer" << std::endl;
     return 1;
   }
 
   glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, gl::width, gl::height);
-  if (glGetError() != GL_NO_ERROR)
-  {
+  if (glGetError() != GL_NO_ERROR) {
     std::cerr << "Failed to allocate renderbuffer storage" << std::endl;
     return 1;
   }
@@ -534,43 +516,39 @@ int main(int argc, char *argv[])
   glDrawBuffers(2, attachments);
   glReadBuffer(GL_COLOR_ATTACHMENT0);
 
-  while (true)
-  {
+  while (true) {
     timer::TimerTick tick = timer.get();
 
-    if (std::chrono::steady_clock::now() > nextFpsPrint)
-    {
+    if (std::chrono::steady_clock::now() > nextFpsPrint) {
       timer.printFps();
       nextFpsPrint = std::chrono::steady_clock::now() + std::chrono::milliseconds(1000);
     }
 
-    for (auto i = 0; i < shaderManager.size(); i++)
-    {
+    for (auto i = 0; i < shaderManager.size(); i++) {
       auto shader = shaderManager[i];
       glUseProgram(shader->program);
 
-      glUniform1f(shader->timeLoc, tick.time);
-      glUniform1f(shader->timeDeltaLoc, tick.timeDelta);
+      glUniform1f(shader->timeLoc, tick.time * args.timeScale);
+      glUniform1f(shader->timeDeltaLoc, tick.timeDelta * args.timeScale);
       glUniform1i(shader->frameLoc, frameCount);
 
       glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
-                             shader->fbTextureBack, 0);
+                             bufferManager.backs[i], 0);
 
       gl::drawPlane();
-      glReadPixels(0, 0, gl::width, gl::height, GL_RGBA, GL_UNSIGNED_BYTE, outPixels[i]);
+      if (args.publishLayers || i == targetBuffer) {
+        glReadPixels(0, 0, gl::width, gl::height, GL_RGBA, GL_UNSIGNED_BYTE, outPixels[i]);
+      }
     }
 
-    for (auto i = 0; i < shaderManager.size(); i++)
-    {
-      auto shader = shaderManager[i];
-      shader->swap();
+    for (auto i = 0; i < shaderManager.size(); i++) {
+      bufferManager.swap(i);
       glActiveTexture(GL_TEXTURE0 + i);
-      glBindTexture(GL_TEXTURE_2D, shader->fbTextureFront);
+      glBindTexture(GL_TEXTURE_2D, bufferManager.fronts[i]);
     }
 
-    pixelserver::send(outPixels[shaderManager.size() - 1]);
-    if (args.publishLayers)
-    {
+    pixelserver::send(outPixels[targetBuffer]);
+    if (args.publishLayers) {
       pixelserver::sendLayers(outPixels[0], shaderManager.size());
     }
 

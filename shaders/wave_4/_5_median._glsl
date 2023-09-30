@@ -2,7 +2,7 @@
 const int MEDIAN_SIZE = 5;
 
 vec4 read(int x, int y) {
-  return read_wrapped_coord(buff4, coord + vec2(x, y));
+  return read_coord_wrap(buff4, coord + vec2(x, y));
 }
 
 vec4 render() {

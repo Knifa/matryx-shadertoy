@@ -35,7 +35,7 @@ mat3[3] region3x3(sampler2D sampler, vec2 uv)
         region[i] = read_coord_wrap(sampler, uv + kpos(i));
 
         // Some bullshit here to make it Nice.
-        region[i] = pow(region[i], vec4(1.25));
+        region[i] = pow(region[i], vec4(0.9));
     }
 
     // Create 3x3 region with 3 color channels (red, green, blue)
@@ -82,68 +82,11 @@ vec3 convolution(mat3 kernel, sampler2D sampler, vec2 uv)
     return fragment;
 }
 
+vec4 render() {
+  float x = mix(
+      convolution(sharpen, buffPrev, coord).x,
+      convolution(gaussian_blur, buffPrev, coord).x,
+  0.8);
 
-vec4 render()
-{
-    float x = mix(
-        convolution(sharpen, buffPrev, vec2(gl_FragCoord.xy)).x,
-        convolution(gaussian_blur, buffPrev, vec2(gl_FragCoord.xy)).x,
-    0.75);
-
-    x = clamp(x, 0.0, 1.0);
-    // x = smoothstep(0.0, 1.0, x);
-
-    float lx = pow(x, 1.1);
-    float l = remap(
-        lx,
-        0.0, 1.0,
-        0.0, 1.0
-    );
-
-    float cx = pow(x, 1.0);
-    // cx = 1.0 - cx;
-    // cx = 1.0 - abs((1.0 - cx) - 0.5) * 2.0;
-    float c = remap(
-        cx,
-        0.0, 1.0,
-        0.0, 0.25
-    );
-
-    float h = pow(x, 1.0) * 270.0;
-
-    h +=
-        (
-            sin(uv_centered_asp.x * (PI / 3.0) + (time * 1.0 / 55.0))
-            + cos(uv_centered_asp.y * (PI / 4.0) + (time * 1.0 / 65.0))
-        ) * 90.0;
-    h += uv_centered.x * 15.0 + uv_centered.y * 15.0;
-    h += (time * 1.0 / 60.0) * 360.0;
-    h = mod(h, 360.0);
-
-    c *= remap(
-        (
-            cos(uv_centered_asp.x * (PI / 2.35) + (time * 1.0 / 45.0))
-            + sin(uv_centered_asp.y * (PI / 4.6) + (time * 1.0 / 47.5))
-            * cos(uv_centered_asp.x * (PI / 2.5) + (time * 1.0 / 69.0))
-        ), -2.0, 2.0, 0.5, 1.0);
-
-    return vec4(OKLCH_TO_SRGB(vec3(l, c, h)), 1.0);
-    // return vec4(OKLCH_TO_SRGB(vec3(1.0 - l, c, h)), 1.0);
-    // return vec4(OKLCH_TO_SRGB(vec3(l, 0.3 - c, h)), 1.0);
-    // return vec4(OKLCH_TO_SRGB(vec3(1.0 - l, 0.3 - c, h)), 1.0);
-
-    // ==== DEBUG ====
-    // return vec4(OKLCH_TO_SRGB(vec3(1.0, 0.5, h)), 1.0);
-    // return vec4(LCH_TO_SRGB(vec3(50.0, 50.0, h)), 1.0);
-    // return vec4(h / 360.0, h / 360.0, h / 360.0, 1.0);
-    // return vec4(uv.x, 0.0, 0.0, 1.0);
-
-    // return vec4(LAB_TO_SRGB(
-    //     vec3(
-    //         75.0,
-    //         cos(uv_centered_asp.x * PI + time) * (1.0 - l) * 100.0,
-    //         sin(uv_centered_asp.y * PI + time) * (1.0 - l) * 100.0
-    //     )
-    // ), 1.0);
-    // return vec4(LAB_TO_SRGB(vec3(l * 75.0, uv_centered_asp.x * 100.0, uv_centered_asp.y * 100.0)), 1.0);
-};
+  return vec4(x, x, x, 1.0);
+}

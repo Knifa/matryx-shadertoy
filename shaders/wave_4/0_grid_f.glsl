@@ -8,7 +8,7 @@ float val;
 float n;
 
 vec4 read(int x, int y) {
-    return read_wrapped_coord(buffGrid, coord + vec2(x, y));
+    return read_coord_wrap(buffGrid, coord + vec2(x, y));
 }
 
 vec4 grow() {

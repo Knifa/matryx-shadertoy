@@ -1,6 +1,6 @@
 vec4 render()
 {
-  vec4 trail = read_wrapped_coord(buff4, coord);
+  vec4 trail = read_coord_wrap(buff4, coord);
   float l = trail.x;
   float c = trail.y;
 

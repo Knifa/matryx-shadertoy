@@ -15,10 +15,8 @@ static zmq::socket_t z_layers_socket(z_context, ZMQ_PUB);
 static int width;
 static int height;
 
-namespace pixelserver
-{
-void setup(const int width, const int height)
-{
+namespace pixelserver {
+void setup(const int width, const int height) {
   ::width = width;
   ::height = height;
 
@@ -26,8 +24,7 @@ void setup(const int width, const int height)
   z_layers_socket.bind(ZMQ_LAYERS_ENDPOINT);
 }
 
-void send(uint32_t *pixels)
-{
+void send(uint32_t *pixels) {
   zmq::const_buffer buffer(pixels, width * height * BPP);
   z_pix_socket.send(buffer);
 
@@ -35,8 +32,7 @@ void send(uint32_t *pixels)
   static_cast<void>(z_pix_socket.recv(reply));
 }
 
-void sendLayers(uint32_t *pixels, const int count)
-{
+void sendLayers(uint32_t *pixels, const int count) {
   zmq::multipart_t message;
   message.addstr("layers");
   message.addmem(&count, sizeof(count));

@@ -20,6 +20,18 @@ const float PI = 3.1415926535897932384626433832795;
 const float PI2 = 6.283185307179586476925286766559;
 const float PI_HALF = 1.5707963267948966192313216916398;
 
+const float PHI = 1.6180339887498948482045868343656;
+const float PHI_INV_A = 0.6180339887498948482045868343656;
+const float PHI_INV_B = 0.3819660112501051517954131656344;
+
+const vec2 ZERO2 = vec2(0.0, 0.0);
+const vec3 ZERO3 = vec3(0.0, 0.0, 0.0);
+const vec4 ZERO4 = vec4(0.0, 0.0, 0.0, 0.0);
+
+const vec2 ONE2 = vec2(1.0, 1.0);
+const vec3 ONE3 = vec3(1.0, 1.0, 1.0);
+const vec4 ONE4 = vec4(1.0, 1.0, 1.0, 1.0);
+
 // =============================================================================
 
 vec2 uv;
@@ -36,48 +48,6 @@ vec2 uv2coord(const vec2 uv) {
     return uv * resolution;
 }
 
-vec4 read_coord(sampler2D buff, vec2 coord) {
-    return texelFetch(buff, ivec2(coord), 0);
-}
-
-// Wrap coordinates out of bounds.
-vec4 read_coord_wrap(sampler2D buff, vec2 coord) {
-    return read_coord(buff, mod(coord, resolution));
-}
-
-// Clamp (i.e., repeat last) coordinates out of bounds.
-vec4 read_coord_clamp(sampler2D buff, vec2 coord) {
-    coord = clamp(coord, vec2(0.0), resolution - 1.0);
-    return read_coord(buff, coord);
-}
-
-// Mirror coordinates out of bounds.
-vec4 read_coord_mirror(sampler2D buff, vec2 coord) {
-    coord = abs(coord);
-    coord = resolution - abs(mod(coord, resolution * 2.0) - resolution);
-    return read_coord(buff, coord);
-}
-
-// Return default value out of bounds.
-vec4 read_coord_default(sampler2D buff, vec2 coord, vec4 default_value) {
-    if (coord.x < 0.0 || coord.x >= resolution.x || coord.y < 0.0 || coord.y >= resolution.y) {
-        return default_value;
-    }
-
-    return read_coord(buff, coord);
-}
-
-// Always return 0.0 out of bounds.
-vec4 read_coord_0(sampler2D buff, vec2 coord) {
-    return read_coord_default(buff, coord, vec4(0.0, 0.0, 0.0, 0.0));
-}
-
-// Always return 1.0 out of bounds.
-vec4 read_coord_1(sampler2D buff, vec2 coord) {
-    return read_coord_default(buff, coord, vec4(1.0, 1.0, 1.0, 1.0));
-}
-
-
 // =============================================================================
 
 float mix_polar(float a, float b, float t) {
@@ -90,7 +60,11 @@ float remap(float value, float l, float h, float new_l, float new_h) {
 }
 
 float remap(float value, float l, float h) {
-    return remap(value, l, h, 0.0, 1.0);
+    return clamp(remap(value, 0.0, 1.0, l, h), l, h);
+}
+
+float norm(float value, float l, float h) {
+    return clamp(remap(value, l, h, 0.0, 1.0), 0.0, 1.0);
 }
 
 // =============================================================================
@@ -115,4 +89,16 @@ vec4 pack_float(float v) {
     int r = (bits >> 24) & int(0xFF);
 
     return vec4(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, float(a) / 255.0);
+}
+
+// =============================================================================
+
+float time_norm(float seconds)
+{
+    return time * (1.0 / seconds);
+}
+
+float time_tan(float seconds)
+{
+    return time_norm(seconds) * PI2;
 }

@@ -6,8 +6,7 @@
 #include <filesystem>
 #include <string>
 
-namespace gl
-{
+namespace gl {
 const int width = 320;
 const int height = 192;
 
