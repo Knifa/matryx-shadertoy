@@ -13,15 +13,17 @@ public:
 
   float time;
   float timeDelta;
+  int index;
 
   TimerTick(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point last,
-            std::chrono::steady_clock::time_point now);
+            std::chrono::steady_clock::time_point now, int index);
 };
 
 class Timer {
 private:
   std::chrono::steady_clock::time_point start;
   std::chrono::steady_clock::time_point last;
+  int count;
 
   std::chrono::milliseconds targetFrameTime;
 
@@ -31,6 +33,8 @@ public:
   Timer(std::chrono::milliseconds targetFrameTime);
 
   TimerTick get();
+  void reset();
+
   void delayUntilNextFrame(TimerTick &tick);
   void printFps();
 };

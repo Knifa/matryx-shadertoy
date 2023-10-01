@@ -1,18 +1,19 @@
 #include "timer.hpp"
 
+#include "ansi.hpp"
 #include <iomanip>
 
 timer::TimerTick::TimerTick(std::chrono::steady_clock::time_point start,
                             std::chrono::steady_clock::time_point last,
-                            std::chrono::steady_clock::time_point now)
-    : start(start), last(last), now(now) {
+                            std::chrono::steady_clock::time_point now, int index)
+    : start(start), last(last), now(now), index(index) {
   time = std::chrono::duration_cast<std::chrono::nanoseconds>(now - start).count() / 1000000000.0f;
   timeDelta =
       std::chrono::duration_cast<std::chrono::nanoseconds>(now - last).count() / 1000000000.0f;
 }
 
 timer::Timer::Timer(std::chrono::milliseconds targetFrameTime)
-    : targetFrameTime(targetFrameTime), avgTimeDelta(0.0f) {
+    : targetFrameTime(targetFrameTime), avgTimeDelta(0.0f), count(0) {
   start = std::chrono::steady_clock::now();
   last = start;
 }
@@ -25,7 +26,7 @@ timer::TimerTick timer::Timer::get() {
     start = now;
   }
 
-  TimerTick tick(start, last, now);
+  TimerTick tick = TimerTick(start, last, now, count);
   last = now;
 
   {
@@ -34,7 +35,15 @@ timer::TimerTick timer::Timer::get() {
     avgTimeDelta = avgTimeDelta * (1.0f - mix) + tick.timeDelta * mix;
   }
 
+  count++;
+
   return tick;
+}
+
+void timer::Timer::reset() {
+  start = std::chrono::steady_clock::now();
+  last = start;
+  count = 0;
 }
 
 void timer::Timer::delayUntilNextFrame(TimerTick &tick) {
@@ -49,6 +58,6 @@ void timer::Timer::delayUntilNextFrame(TimerTick &tick) {
 }
 
 void timer::Timer::printFps() {
-  std::cout << "\033[2K\r" << std::fixed << std::setprecision(2) << 1.0f / avgTimeDelta << " Hz"
-            << std::flush;
+  std::cout << ansi::CLEAR_LINE << std::fixed << std::setprecision(2) << 1.0f / avgTimeDelta
+            << " Hz" << std::flush;
 }
