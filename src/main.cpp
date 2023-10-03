@@ -259,6 +259,7 @@ private:
   std::string shaderName;
 
 public:
+  std::vector<std::filesystem::path> loadedPaths;
   std::vector<std::unique_ptr<Shader>> shaderObjects;
 
   ShaderManager(std::filesystem::path shadersBaseDirPath, std::string shaderName)
@@ -269,6 +270,7 @@ public:
     std::string preludeSource;
     std::vector<ShaderLocation> preludeLocations;
     std::vector<std::unique_ptr<Shader>> newShaderObjects;
+    std::vector<std::filesystem::path> newLoadedPaths;
 
     std::filesystem::path preludeDirPath = shadersBaseDirPath / "prelude";
     std::filesystem::path shaderDirPath = shadersBaseDirPath / shaderName;
@@ -313,6 +315,11 @@ public:
     std::sort(preludeFiles.begin(), preludeFiles.end());
     std::sort(shaderPreludeFiles.begin(), shaderPreludeFiles.end());
     std::sort(shaderFiles.begin(), shaderFiles.end());
+
+    newLoadedPaths.insert(newLoadedPaths.end(), preludeFiles.begin(), preludeFiles.end());
+    newLoadedPaths.insert(newLoadedPaths.end(), shaderPreludeFiles.begin(),
+                          shaderPreludeFiles.end());
+    newLoadedPaths.insert(newLoadedPaths.end(), shaderFiles.begin(), shaderFiles.end());
 
     addPreludeFiles(preludeSource, preludeLocations, preludeLineCounter, preludeFiles);
 
@@ -429,6 +436,7 @@ public:
     }
 
     shaderObjects = std::move(newShaderObjects);
+    loadedPaths = std::move(newLoadedPaths);
   }
 
   int size() { return shaderObjects.size(); }
@@ -574,10 +582,10 @@ int main(int argc, char *argv[]) {
         needBufferReload = true;
         lastShaderModified = shaderDirLastModified;
       } else {
-        for (auto &shader : shaderManager.shaderObjects) {
-          auto lastModified = std::filesystem::last_write_time(shader->path);
+        for (auto &path : shaderManager.loadedPaths) {
+          auto lastModified = std::filesystem::last_write_time(path);
           if (lastModified > lastShaderModified) {
-            std::cout << "SHADER CHANGED: " << shader->path << std::endl;
+            std::cout << "SHADER FILE CHANGED: " << path << std::endl;
             needReload = true;
             lastShaderModified = lastModified;
             break;
