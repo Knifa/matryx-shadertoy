@@ -9,11 +9,17 @@ static const GLfloat fullPlane[] = {-1.0f, -1.0f, 0.0f, 1.0f, -1.0f, +1.0f, 0.0f
 static GLuint planeVbo;
 
 namespace gl {
+int width;
+int height;
+
 namespace {
   static void createPlane();
 }
 
-int setup() {
+int setup(int width, int height) {
+  gl::width = width;
+  gl::height = height;
+
   if (gladLoaderLoadEGL(NULL) == 0) {
     std::cerr << "Failed to load EGL" << std::endl;
     return 1;
@@ -71,7 +77,7 @@ int setup() {
     return 1;
   }
 
-  EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+  EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
 
   EGLContext context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttribs);
   if (context == EGL_NO_CONTEXT) {

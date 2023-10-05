@@ -1,6 +1,8 @@
 vec4 render();
 
 void main() {
+    resolution_aspect = vec2(resolution.x / resolution.y, 1.0);
+
     coord = gl_FragCoord.xy;
 
     uv = coord2uv(coord);

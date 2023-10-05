@@ -7,10 +7,10 @@
 #include <string>
 
 namespace gl {
-const int width = 320;
-const int height = 192;
+extern int width;
+extern int height;
 
-int setup();
+int setup(int width, int height);
 void drawPlane();
 
 std::string getShaderSource(std::filesystem::path path);

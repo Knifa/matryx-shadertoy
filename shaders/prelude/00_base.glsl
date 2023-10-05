@@ -7,14 +7,14 @@ precision highp sampler2D;
 uniform float time;
 uniform float timeDelta;
 uniform int frame;
+uniform vec2 resolution;
 
 layout (location = 0) out highp vec4 fragColor;
 layout (location = 1) out highp vec4 fragColor2;
 
 uniform sampler2D buffPrev;
 
-const vec2 resolution = vec2(320.0, 192.0);
-const vec2 resolution_aspect = vec2(320.0 / 192.0, 1.0);
+vec2 resolution_aspect = vec2(0.0);
 
 const float PI = 3.1415926535897932384626433832795;
 const float PI2 = 6.283185307179586476925286766559;

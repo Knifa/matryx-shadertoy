@@ -171,6 +171,7 @@ public:
   std::vector<GLint> buffLocs;
   GLint buffPrevLoc;
   GLint frameLoc;
+  GLint resolutionLoc;
 
   Shader(std::filesystem::path path, ShaderDataType type, GLuint vertexShader,
          std::string_view fragmentShaderSource, int bufferCount, ShaderErrorParser &errorParser)
@@ -179,6 +180,7 @@ public:
     timeDeltaLoc = glGetUniformLocation(program, "timeDelta");
     frameLoc = glGetUniformLocation(program, "frame");
     buffPrevLoc = glGetUniformLocation(program, "buffPrev");
+    resolutionLoc = glGetUniformLocation(program, "resolution");
 
     buffLocs.resize(bufferCount);
     for (auto i = 0; i < bufferCount; i++) {
@@ -439,6 +441,8 @@ public:
       for (auto j = 0; j < shader->buffLocs.size(); j++) {
         glUniform1i(shader->buffLocs[j], j);
       }
+
+      glUniform2f(shader->resolutionLoc, gl::width, gl::height);
     }
 
     shaderObjects = std::move(newShaderObjects);
@@ -478,6 +482,8 @@ public:
   bool publishLayers;
   float timeScale;
   int debugBuffer;
+  int width;
+  int hieght;
 
   Args(int argc, char *argv[]) {
     argparse::ArgumentParser program("matryx_shadertoy");
@@ -489,6 +495,9 @@ public:
     program.add_argument("--fps-limit").default_value(120).scan<'i', int>();
     program.add_argument("--publish-layers").default_value(false).implicit_value(true);
     program.add_argument("--time-scale").default_value(1.0f).scan<'f', float>();
+
+    program.add_argument("--width").default_value(320).scan<'i', int>();
+    program.add_argument("--height").default_value(192).scan<'i', int>();
 
     try {
       program.parse_args(argc, argv);
@@ -509,6 +518,9 @@ public:
     fpsLimit = program.get<int>("--fps-limit");
     publishLayers = program.get<bool>("--publish-layers");
     timeScale = program.get<float>("--time-scale");
+
+    width = program.get<int>("--width");
+    hieght = program.get<int>("--height");
   }
 
   std::filesystem::path shaderPath() { return shadersBasePath / shader; }
@@ -517,7 +529,7 @@ public:
 int main(int argc, char *argv[]) {
   Args args(argc, argv);
 
-  gl::setup();
+  gl::setup(args.width, args.hieght);
   pixelserver::setup(gl::width, gl::height);
 
   ShaderManager shaderManager = ShaderManager(args.shadersBasePath, args.shader);
