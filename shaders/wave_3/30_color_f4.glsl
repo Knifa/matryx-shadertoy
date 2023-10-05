@@ -7,25 +7,7 @@ vec4 render()
   float l, c, h;
   vec2 uv_ = uv_centered;
 
-  uv_.x = mix(
-    uv_.x,
-    mix(SPLIT_CENTERED, 0.25, pow(split_pct, 1.0 / 3.0)),
-    split_step
-  );
-
-  uv_.x = mix(
-    uv_.x,
-    uv_.x - (
-      (
-        sin(time_tan(60.0) + pow(split_pct, 1.0 / 1.0) * PI2 * 1.0)
-        * 0.5
-        + 0.5
-      )
-      * pow(split_pct, 1.0 / 1.0)
-      * 0.025
-    ),
-    split_step
-  );
+  wave_reflect(uv_);
 
   // ===========================================================================
 
@@ -36,6 +18,8 @@ vec4 render()
     vec2(0.5, 0.0),
     vec2(0.5, 1.0)
   );
+
+  clamp(x, 0.0, 1.0);
 
   // ===========================================================================
 
@@ -49,11 +33,29 @@ vec4 render()
   );
 
   // Apply L split.
+  // l = mix(
+  //   l,
+  //   mix(l, pow(l * 1.25, 1.5), pow(split_pct, 1.0 / 2.0)),
+  //   split_step
+  // );
+
+  // Fade at bottom.
   l = mix(
     l,
-    mix(l, pow(l * 1.25, 1.5), pow(split_pct, 1.0 / 2.0)),
-    split_step
+    smoothstep(0.25, 0.5, l) * pow(l, 2.0),
+    split_pct
   );
+
+  // l = mix(
+  //   l,
+  //   mix(
+  //     l,
+  //     pow(l, 2.0),
+  //     split_pct
+  //   ),
+  //   split_step
+  // );
+
 
   // ===========================================================================
 
@@ -74,11 +76,11 @@ vec4 render()
   );
 
   // Apply C split.
-  c = mix(
-    c,
-    c * 0.8,
-    split_pct
-  );
+  // c = mix(
+  //   c,
+  //   c * 0.5,
+  //   split_pct
+  // );
 
   // ===========================================================================
 
@@ -107,11 +109,11 @@ vec4 render()
 
   vec3 rgb = OKLCH_TO_SRGB(vec3(l, c, h));
 
-  rgb = mix(
-    rgb,
-    ZERO3,
-    split_pct
-  );
+  // rgb = mix(
+  //   rgb,
+  //   ZERO3,
+  //   split_pct
+  // );
 
   // ===========================================================================
 

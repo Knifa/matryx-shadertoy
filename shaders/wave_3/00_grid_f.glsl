@@ -1,4 +1,4 @@
-const int SEARCH_RADIUS = 4;
+const int SEARCH_RADIUS = 3;
 const int SEARCH_DIAMETER = 2 * SEARCH_RADIUS + 1;
 
 const float SEARCH_RADIUS_F = float(SEARCH_RADIUS);
@@ -12,9 +12,9 @@ float read(vec2 coord_) {
     uv_ -= 0.5;
     uv_ *= resolution_aspect;
 
-    // ivec2 c_coord = ivec2(uv_ * resolution);
-    // float size = 0.025 * (sin(time * (1.0 / 120.0) * PI2) + 1.0) + 0.025;
-    // float outlineSize = size * 1.05;
+    ivec2 c_coord = ivec2(uv_ * resolution);
+    float size = 0.25 * (sin(time * (1.0 / 120.0) * PI2) + 1.0) + 0.025;
+    float outlineSize = size * 1.05;
 
     // if (
     //     in_bounding_box(c_coord, ivec2(-size * 3, 0), ivec2(size, size))

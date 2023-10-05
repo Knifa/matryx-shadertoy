@@ -33,21 +33,26 @@ private:
 
 public:
   ShaderErrorParser() : shaderLocations() {}
-
   ShaderErrorParser(std::vector<ShaderLocation> shaderLocations)
       : shaderLocations(shaderLocations) {}
 
-  void parse(std::string error) {
+  void parse(const std::string_view error) {
     if (shaderLocations.size() == 0) {
       std::cerr << error << std::endl;
       return;
     }
 
-    std::vector<std::string> lines;
-    std::string line;
-    std::istringstream stream(error);
-    while (std::getline(stream, line)) {
-      lines.push_back(line);
+    std::vector<std::string_view> lines;
+    std::string_view lineView = error;
+    while (true) {
+      auto newlinePos = lineView.find('\n');
+      if (newlinePos == std::string::npos) {
+        lines.push_back(lineView);
+        break;
+      }
+
+      lines.push_back(lineView.substr(0, newlinePos));
+      lineView = lineView.substr(newlinePos + 1);
     }
 
     for (auto &line : lines) {
@@ -61,7 +66,7 @@ public:
         continue;
       }
 
-      auto lineNumber = std::stoi(line.substr(colonPos + 1)) - 1;
+      auto lineNumber = std::stoi(std::string(line.substr(colonPos + 1))) - 1;
       auto shaderLocation = std::find_if(shaderLocations.rbegin(), shaderLocations.rend(),
                                          [lineNumber](ShaderLocation &shaderLocation) {
                                            return shaderLocation.startingLine <= lineNumber;
@@ -70,9 +75,10 @@ public:
       auto shaderName = shaderLocation->name;
       auto shaderLine = lineNumber - shaderLocation->startingLine + 1;
 
-      line = shaderName + ":" + std::to_string(shaderLine) + ":" + line.substr(messagePos + 1);
+      std::string errorOut = shaderName + ":" + std::to_string(shaderLine) + ":" +
+                             std::string(line.substr(messagePos + 1));
 
-      std::cerr << line << std::endl;
+      std::cerr << errorOut << std::endl;
     }
   }
 };
@@ -88,7 +94,7 @@ public:
   GLuint program;
   GLuint fragmentShader;
 
-  BaseShader(GLuint vertexShader, std::string fragmentShaderSource,
+  BaseShader(GLuint vertexShader, std::string_view fragmentShaderSource,
              ShaderErrorParser &errorParser) {
     program = glCreateProgram();
 
@@ -103,7 +109,7 @@ public:
       throw;
     }
 
-    const char *fragmentShaders[] = {fragmentShaderSource.c_str()};
+    const char *fragmentShaders[] = {fragmentShaderSource.data()};
     glShaderSource(fragmentShader, 1, fragmentShaders, NULL);
     glCompileShader(fragmentShader);
 
@@ -167,7 +173,7 @@ public:
   GLint frameLoc;
 
   Shader(std::filesystem::path path, ShaderDataType type, GLuint vertexShader,
-         std::string fragmentShaderSource, int bufferCount, ShaderErrorParser &errorParser)
+         std::string_view fragmentShaderSource, int bufferCount, ShaderErrorParser &errorParser)
       : BaseShader(vertexShader, fragmentShaderSource, errorParser), path(path), type(type) {
     timeLoc = glGetUniformLocation(program, "time");
     timeDeltaLoc = glGetUniformLocation(program, "timeDelta");
