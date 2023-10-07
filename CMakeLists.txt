@@ -24,7 +24,7 @@ target_link_libraries(matryx_shadertoy PRIVATE argparse zmq)
 target_compile_features(matryx_shadertoy PRIVATE cxx_std_20)
 target_compile_options(matryx_shadertoy PRIVATE
   -O3
-  -mcpu=native
+  -mtune=native
   -Wall
 )
 

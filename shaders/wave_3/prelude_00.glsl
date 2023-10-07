@@ -4,7 +4,7 @@ const float SPLIT_CENTERED = SPLIT - 0.5;
 const float SPLIT_INV = 1.0 - SPLIT;
 const float SPLIT_INV_CENTERED = SPLIT_INV - 0.5;
 
-const float SPLIT_GAP = 0.1;
+const float SPLIT_GAP = 0.05;
 const float SPLIT_BLEND_A = SPLIT - SPLIT_GAP;
 const float SPLIT_BLEND_B = SPLIT + SPLIT_GAP;
 
@@ -46,7 +46,7 @@ void wave_reflect(inout vec2 uv_) {
     (
       uv_.x +
       (
-        sin(time_tan(120.0) + split_pct * PI2 * 1.05)
+        sin(time_tan(120.0) + split_pct * PI2 * 2.5)
         * 0.025 * split_pct_pow
       )
     ),
@@ -69,12 +69,12 @@ void wave_reflect(inout vec2 uv_) {
     uv_.y,
     uv_.y - (
       (
-        sin(time_tan(60.0) + split_pct * PI2 * 0.95)
+        sin(time_tan(120.0) + split_pct * PI2 * 2.5)
         * 0.5
         + 0.5
       )
       * split_pct_pow
-      * 0.01
+      * 0.05
     ),
     split_step
   );
