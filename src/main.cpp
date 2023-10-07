@@ -170,6 +170,7 @@ public:
   GLint timeDeltaLoc;
   std::vector<GLint> buffLocs;
   GLint buffPrevLoc;
+  GLint buffThisLoc;
   GLint frameLoc;
   GLint resolutionLoc;
 
@@ -180,6 +181,7 @@ public:
     timeDeltaLoc = glGetUniformLocation(program, "timeDelta");
     frameLoc = glGetUniformLocation(program, "frame");
     buffPrevLoc = glGetUniformLocation(program, "buffPrev");
+    buffThisLoc = glGetUniformLocation(program, "buffThis");
     resolutionLoc = glGetUniformLocation(program, "resolution");
 
     buffLocs.resize(bufferCount);
@@ -438,6 +440,8 @@ public:
       glUseProgram(shader->program);
 
       glUniform1i(shader->buffPrevLoc, i == 0 ? 0 : i - 1);
+      glUniform1i(shader->buffThisLoc, i);
+
       for (auto j = 0; j < shader->buffLocs.size(); j++) {
         glUniform1i(shader->buffLocs[j], j);
       }

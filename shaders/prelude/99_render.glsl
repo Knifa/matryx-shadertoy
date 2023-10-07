@@ -13,6 +13,6 @@ void main() {
 
     rand_init();
 
-    fragColor = render();
+    fragColor = clamp(render(), 0.0, 1.0);
     fragColor2 = fragColor;
 }
