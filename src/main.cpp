@@ -496,8 +496,8 @@ public:
     program.add_argument("--publish-layers").default_value(false).implicit_value(true);
     program.add_argument("--time-scale").default_value(1.0f).scan<'f', float>();
 
-    program.add_argument("--width").default_value(320).scan<'i', int>();
-    program.add_argument("--height").default_value(192).scan<'i', int>();
+    program.add_argument("--width").default_value(192).scan<'i', int>();
+    program.add_argument("--height").default_value(320).scan<'i', int>();
 
     try {
       program.parse_args(argc, argv);
