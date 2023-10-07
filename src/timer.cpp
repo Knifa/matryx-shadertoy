@@ -13,7 +13,7 @@ timer::TimerTick::TimerTick(std::chrono::steady_clock::time_point start,
 }
 
 timer::Timer::Timer(std::chrono::milliseconds targetFrameTime)
-    : targetFrameTime(targetFrameTime), avgTimeDelta(0.0f), count(0) {
+    : count(0), targetFrameTime(targetFrameTime), avgTimeDelta(0.0f) {
   start = std::chrono::steady_clock::now();
   last = start;
 }
