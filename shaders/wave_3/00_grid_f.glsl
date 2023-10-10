@@ -1,4 +1,4 @@
-const int SEARCH_RADIUS = 3;
+const int SEARCH_RADIUS = 2;
 const int SEARCH_DIAMETER = 2 * SEARCH_RADIUS + 1;
 
 const float SEARCH_RADIUS_F = float(SEARCH_RADIUS);
@@ -8,9 +8,11 @@ float read(vec2 coord_) {
     coord_ = coord + coord_;
     if (coord_.y > SPLIT_BLEND_B * resolution.y) {
         // coord_.y = 0.0;
-        coord_.y = SPLIT_BLEND_B * resolution.y - abs(SPLIT_BLEND_B * resolution.y - coord_.y);
+        // coord_.y = SPLIT_BLEND_B * resolution.y - abs(SPLIT_BLEND_B * resolution.y - coord_.y);
+        return rand_random();
     } else if (coord_.y < 0.0) {
         // coord.y = SPLIT_BLEND_B * resolution.y;
+        return rand_random();
     }
 
     vec2 uv_ = coord_ / resolution;
@@ -66,8 +68,8 @@ float read(vec2 coord_) {
     // }
 
     // return read_coord_wrap(buff00, coord_).r;
-    // return read_coord_default(buff00, coord_, vec4(rand_random())).r;
-    return read_coord_mirror(buff00, coord_).r;
+    return read_coord_default(buff00, coord_, vec4(rand_random())).r;
+    // return read_coord_mirror(buff00, coord_).r;
 }
 
 float grow() {
@@ -136,7 +138,7 @@ vec4 render()
         discard;
     }
 
-
+    float o;
     if (frame == 0) {
         o = init();
     } else {
