@@ -13,6 +13,7 @@ layout (location = 0) out highp vec4 fragColor;
 layout (location = 1) out highp vec4 fragColor2;
 
 uniform sampler2D buffPrev;
+uniform sampler2D buffThis;
 
 vec2 resolution_aspect = vec2(0.0);
 
@@ -67,6 +68,33 @@ float remap(float value, float l, float h) {
 
 float norm(float value, float l, float h) {
     return clamp(remap(value, l, h, 0.0, 1.0), 0.0, 1.0);
+}
+
+// =============================================================================
+
+float wrap(float value, float l, float h) {
+    return mod(value - l, h - l) + l;
+}
+
+vec2 wrap(vec2 value, vec2 l, vec2 h) {
+    return mod(value - l, h - l) + l;
+}
+
+float mirror(float value, float l, float h) {
+    float range = h - l;
+    float v = mod(value - l, range * 2.0);
+    if (v > range) {
+        v = range * 2.0 - v;
+    }
+    return v + l;
+}
+
+vec2 mirror(vec2 value, vec2 l, vec2 h) {
+    vec2 range = h - l;
+    vec2 v = mod(value - l, range * 2.0);
+    vec2 m = step(range, v);
+    v = mix(v, range * 2.0 - v, m);
+    return v + l;
 }
 
 // =============================================================================
