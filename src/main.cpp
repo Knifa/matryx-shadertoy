@@ -483,11 +483,15 @@ public:
   std::string shader;
   std::filesystem::path shadersBasePath;
   int fpsLimit;
-  bool publishLayers;
   float timeScale;
   int debugBuffer;
   int width;
-  int hieght;
+  int height;
+
+  std::string matryxEndpoint;
+  std::string layersEndpoint;
+  std::string outputEndpoint;
+  bool publishLayers;
 
   Args(int argc, char *argv[]) {
     argparse::ArgumentParser program("matryx_shadertoy");
@@ -495,13 +499,19 @@ public:
     program.add_argument("shader");
     program.add_argument("--shaders-base").default_value(std::filesystem::path("./shaders"));
 
+    program.add_argument("--width").default_value(192).scan<'i', int>();
+    program.add_argument("--height").default_value(320).scan<'i', int>();
+
     program.add_argument("--debug-buffer").default_value(-1).scan<'i', int>();
     program.add_argument("--fps-limit").default_value(120).scan<'i', int>();
     program.add_argument("--publish-layers").default_value(false).implicit_value(true);
     program.add_argument("--time-scale").default_value(1.0f).scan<'f', float>();
 
-    program.add_argument("--width").default_value(192).scan<'i', int>();
-    program.add_argument("--height").default_value(320).scan<'i', int>();
+    program.add_argument("--matryx-endpoint").default_value(std::string("ipc:///var/run/matryx"));
+    program.add_argument("--layers-endpoint")
+        .default_value(std::string("ipc:///var/run/matryx-shadertoy-layers"));
+    program.add_argument("--output-endpoint")
+        .default_value(std::string("ipc:///var/run/matryx-shadertoy-output"));
 
     try {
       program.parse_args(argc, argv);
@@ -518,13 +528,31 @@ public:
       throw;
     }
 
+    width = program.get<int>("--width");
+    height = program.get<int>("--height");
+
     debugBuffer = program.get<int>("--debug-buffer");
     fpsLimit = program.get<int>("--fps-limit");
     publishLayers = program.get<bool>("--publish-layers");
     timeScale = program.get<float>("--time-scale");
 
-    width = program.get<int>("--width");
-    hieght = program.get<int>("--height");
+    matryxEndpoint = program.get<std::string>("--matryx-endpoint");
+    layersEndpoint = program.get<std::string>("--layers-endpoint");
+    outputEndpoint = program.get<std::string>("--output-endpoint");
+  }
+
+  void print() {
+    std::cout << "shader: " << shader << std::endl;
+    std::cout << "shadersBasePath: " << shadersBasePath << std::endl;
+    std::cout << "fpsLimit: " << fpsLimit << std::endl;
+    std::cout << "timeScale: " << timeScale << std::endl;
+    std::cout << "debugBuffer: " << debugBuffer << std::endl;
+    std::cout << "width: " << width << std::endl;
+    std::cout << "height: " << height << std::endl;
+    std::cout << "matryxEndpoint: " << matryxEndpoint << std::endl;
+    std::cout << "layersEndpoint: " << layersEndpoint << std::endl;
+    std::cout << "outputEndpoint: " << outputEndpoint << std::endl;
+    std::cout << "publishLayers: " << publishLayers << std::endl;
   }
 
   std::filesystem::path shaderPath() { return shadersBasePath / shader; }
@@ -532,9 +560,11 @@ public:
 
 int main(int argc, char *argv[]) {
   Args args(argc, argv);
+  args.print();
 
-  gl::setup(args.width, args.hieght);
-  pixelserver::setup(gl::width, gl::height);
+  gl::setup(args.width, args.height);
+  pixelserver::setup(gl::width, gl::height, args.matryxEndpoint, args.layersEndpoint,
+                     args.outputEndpoint);
 
   ShaderManager shaderManager = ShaderManager(args.shadersBasePath, args.shader);
   try {
