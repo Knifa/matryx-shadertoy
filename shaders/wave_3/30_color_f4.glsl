@@ -7,7 +7,7 @@ vec4 render()
   float l, c, h;
   vec2 uv_ = uv_centered;
 
-  wave_reflect(uv_);
+  // wave_reflect(uv_);
 
   // ===========================================================================
 

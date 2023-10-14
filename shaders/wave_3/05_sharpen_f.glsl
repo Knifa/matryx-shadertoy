@@ -83,14 +83,14 @@ vec3 convolution(mat3 kernel, sampler2D sampler, vec2 uv)
 }
 
 vec4 render() {
-  if (uv.y > SPLIT_BLEND_B) {
-    discard;
-  }
+//   if (uv.y > SPLIT_BLEND_B) {
+//     discard;
+//   }
 
   float x = mix(
       convolution(sharpen, buffPrev, coord).x,
       convolution(gaussian_blur, buffPrev, coord).x,
-  0.8);
+  0.75);
 
   return vec4(x, x, x, 1.0);
 }

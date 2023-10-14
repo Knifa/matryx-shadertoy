@@ -6,14 +6,11 @@ const float SEARCH_DIAMETER_F = float(SEARCH_DIAMETER);
 
 float read(vec2 coord_) {
     coord_ = coord + coord_;
-    if (coord_.y > SPLIT_BLEND_B * resolution.y) {
-        // coord_.y = 0.0;
-        // coord_.y = SPLIT_BLEND_B * resolution.y - abs(SPLIT_BLEND_B * resolution.y - coord_.y);
-        return rand_random();
-    } else if (coord_.y < 0.0) {
-        // coord.y = SPLIT_BLEND_B * resolution.y;
-        return rand_random();
-    }
+    // if (coord_.y > SPLIT_BLEND_B * resolution.y) {
+    //     return rand_random();
+    // } else if (coord_.y < 0.0) {
+    //     return rand_random();
+    // }
 
     vec2 uv_ = coord_ / resolution;
     uv_ -= 0.5;
@@ -106,8 +103,8 @@ float grow() {
 
             // float weight = 1.0 - ni * ni - nj * nj; // bugged, sharp corners (og)
             // float weight = 1.0 - sqrt(ni * ni + nj * nj); // needs large radius
-            float weight = SEARCH_DIAMETER_F - sqrt(ni * ni + nj * nj); // wtf
-            // float weight = SEARCH_DIAMETER_F - sqrt(ni * ni + nj * nj) * (SEARCH_RADIUS_F - 1.0); // wtf but bigger spirals!?
+            // float weight = SEARCH_DIAMETER_F - sqrt(ni * ni + nj * nj); // wtf
+            float weight = SEARCH_DIAMETER_F - sqrt(ni * ni + nj * nj) * (SEARCH_RADIUS_F - 1.0); // wtf but bigger spirals!?
             // float weight = 1.0; // functionally the same as the one above, i think
 
             // higher values here mean smoother growth, kind of like zooming in
@@ -134,9 +131,9 @@ float init() {
 
 vec4 render()
 {
-    if (uv.y > SPLIT_BLEND_B) {
-        discard;
-    }
+    // if (uv.y > SPLIT_BLEND_B) {
+    //     discard;
+    // }
 
     float o;
     if (frame == 0) {
