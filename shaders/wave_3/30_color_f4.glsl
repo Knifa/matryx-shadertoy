@@ -19,17 +19,16 @@ vec4 render()
     vec2(0.5, 1.0)
   );
 
-  clamp(x, 0.0, 1.0);
+  x = clamp(x, 0.0, 1.0);
 
   // ===========================================================================
 
-  // float lx = pow(x, 1.1);
-  float lx = x;
+  float lx = pow(x, 1.0);
 
   l = remap(
     lx,
     0.0, 1.0,
-    0.05, 1.0
+    0.1, 1.0
   );
 
   // Apply L split.
@@ -40,11 +39,11 @@ vec4 render()
   // );
 
   // Fade at bottom.
-  l = mix(
-    l,
-    smoothstep(0.25, 0.5, l) * pow(l, 2.0),
-    split_pct
-  );
+  // l = mix(
+  //   l,
+  //   smoothstep(0.25, 0.5, l) * pow(l, 2.0),
+  //   split_pct
+  // );
 
   // l = mix(
   //   l,
@@ -59,20 +58,20 @@ vec4 render()
 
   // ===========================================================================
 
-  float cx = pow(x, 1.0);
+  float cx = pow(x, 1.5);
 
   c = remap(
       cx,
       0.0, 1.0,
-      0.05, 0.175
+      0.1, 0.15
   );
 
   c *= remap(
     (
-      cos(uv_.y * (PI / 2.35) + (time * 1.0 / 45.0))
-      + sin(uv_.x * (PI / 4.6) + (time * 1.0 / 47.5))
-      * cos(uv_.y * (PI / 2.5) + (time * 1.0 / 69.0))
-    ), -2.0, 2.0, 0.5, 1.0
+      cos(uv_.y * (PI / 2.35) + time_norm(45.0))
+      * sin(uv_.x * (PI / 4.6) + time_norm(47.0))
+      * cos(uv_.y * (PI / 2.5) + time_norm(69.0))
+    ), -1.0, 1.0, 0.5, 1.0
   );
 
   // Apply C split.
@@ -84,15 +83,15 @@ vec4 render()
 
   // ===========================================================================
 
-  h = pow(x, 1.0) * 300.0;
+  h = pow(x, 1.5) * 270.0;
 
   h +=
     (
-      sin(uv_.y * (PI / 3.0) + (time * 1.0 / 55.0))
-      + cos(uv_.x * (PI / 4.0) + (time * 1.0 / 65.0))
-    ) * 120.0;
-  h += uv_.y * 30.0 + uv_.x * 30.0;
-  h += (time * 1.0 / 60.0) * 360.0;
+      sin(uv_.y * (PI / 3.0) + time_norm(55.0))
+      + cos(uv_.x * (PI / 4.0) + time_norm(65.0))
+    ) * 270.0;
+  h += uv_.y * 60.0 + uv_.x * 60.0;
+  h += time_norm(60.0) * 360.0;
 
   // Apply H split.
   // h = mix(

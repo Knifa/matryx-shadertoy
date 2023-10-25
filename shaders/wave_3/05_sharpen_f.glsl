@@ -87,10 +87,17 @@ vec4 render() {
 //     discard;
 //   }
 
+//   return read_coord(buffPrev, coord);
+
   float x = mix(
+    read_coord(buffPrev, coord).x,
+    mix(
       convolution(sharpen, buffPrev, coord).x,
       convolution(gaussian_blur, buffPrev, coord).x,
-  0.75);
+      0.25
+    ),
+    0.5
+  );
 
   return vec4(x, x, x, 1.0);
 }

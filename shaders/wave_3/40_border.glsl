@@ -1,5 +1,5 @@
 const float crop = 0.0;
-const float smoothCrop = 32.0;
+const float smoothCrop = 24.0;
 
 vec4 render() {
   vec4 o = read_coord(buffPrev, coord);
@@ -58,13 +58,10 @@ vec4 render() {
 
   vec3 u = SRGB_TO_LCH(o.rgb);
 
-  u.r = u.r * remap(pow(smooth_step_, 1.0 / 2.0), 0.0, 1.0, -0.2, 1.0);
+  u.r = u.r * remap(pow(smooth_step_, 1.0 / 3.0), 0.0, 1.0, -0.2, 1.0);
   u.g = u.g * remap(pow(smooth_step_, 1.0), 0.0, 1.0, 0.25, 1.0);
-  // u.b = u.b * remap(pow(smooth_step_, 1.0), 0.0, 1.0, 0.75, 1.25);
+  // u.b = u.b * remap(pow(smooth_step_, 1.0), 0.0, 1.0, 1.0, 2.0);
 
   u = LCH_TO_SRGB(u);
   return vec4(u.rgb, 1.0);
-
-  // o.rgb = o.rgb * smooth_step_;
-  // return vec4(o.rgb, 1.0);
 }

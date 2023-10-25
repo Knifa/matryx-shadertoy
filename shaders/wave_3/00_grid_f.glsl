@@ -1,8 +1,19 @@
-const int SEARCH_RADIUS = 2;
+const int SEARCH_RADIUS = 4;
 const int SEARCH_DIAMETER = 2 * SEARCH_RADIUS + 1;
 
 const float SEARCH_RADIUS_F = float(SEARCH_RADIUS);
 const float SEARCH_DIAMETER_F = float(SEARCH_DIAMETER);
+
+
+const float FADE_THRESHOLD_LOWER = 0.05;
+const float FADE_THRESHOLD_UPPER = 0.50;
+
+const float STAY_THRESHOLD_LOWER = 0.30;
+const float STAY_THRESHOLD_UPPER = 0.40;
+
+const float TAKEOVER_THRESHOLD_LOWER = min(1.0, STAY_THRESHOLD_UPPER * 1.25);
+const float TAKEOVER_THRESHOLD_UPPER = min(1.0, TAKEOVER_THRESHOLD_LOWER * 1.5);
+
 
 float read(vec2 coord_) {
     coord_ = coord + coord_;
@@ -12,13 +23,13 @@ float read(vec2 coord_) {
     //     return rand_random();
     // }
 
-    vec2 uv_ = coord_ / resolution;
-    uv_ -= 0.5;
-    uv_ *= resolution_aspect;
+    // vec2 uv_ = coord_ / resolution;
+    // uv_ -= 0.5;
+    // uv_ *= resolution_aspect;
 
-    ivec2 c_coord = ivec2(uv_ * resolution);
-    float size = 0.25 * (sin(time * (1.0 / 120.0) * PI2) + 1.0) + 0.025;
-    float outlineSize = size * 1.05;
+    // ivec2 c_coord = ivec2(uv_ * resolution);
+    // float size = 0.25 * (sin(time * (1.0 / 120.0) * PI2) + 1.0) + 0.025;
+    // float outlineSize = size * 1.05;
 
     // if (
     //     in_bounding_box(c_coord, ivec2(-size * 3, 0), ivec2(size, size))
@@ -70,16 +81,27 @@ float read(vec2 coord_) {
 }
 
 float grow() {
-    float lval = read(vec2(0.0, 0.0));
-    float val = lval * (1.0 - rand_range(0.1, 0.2) * timeDelta * 0.20);
+    float range_mul = sin(time_tan(600.0));
+    // range_mul = 1.0 + range_mul * 0.1;
+    range_mul = 1.0;
 
-    float range_mul = sin(time * (1.0 / 60.0) * PI2);
-    range_mul = 1.0 + range_mul * 0.025;
+    float timeBoost;
+    timeBoost = 0.2;
+    if (time < 60.0) {
+        timeBoost = timeBoost * 10.0;
+        range_mul = 1.0;
+    }
+    // timeBoost = 2.0;
+
+    float lval = read(vec2(0.0, 0.0));
+
+    // The random range being bigger here makes it more chaotic, generally.
+    float val = lval * (1.0 - rand_range(FADE_THRESHOLD_LOWER, FADE_THRESHOLD_UPPER) * timeDelta * timeBoost);
 
     // higher values here induce more smoothing and like more spirals
     // there needs to be a gap between the value below though.
     // kind of like a "contrast" value????
-    if (val > rand_range(0.3, 0.4) * range_mul) {
+    if (val >= rand_range(STAY_THRESHOLD_LOWER, STAY_THRESHOLD_UPPER) * range_mul) {
         return float(val);
     }
 
@@ -91,29 +113,41 @@ float grow() {
                 continue;
             }
 
+            float lvn = read(vec2(float(i), float(j)));
+
             float ni = float(i) / SEARCH_RADIUS_F;
             float nj = float(j) / SEARCH_RADIUS_F;
 
-            // vec2 global_coord = (coord + vec2(i, j)) / resolution;
-            // if (global_coord.x > 0.4 && global_coord.x < 0.6 && global_coord.y > 0.4 && global_coord.y < 0.6) {
-            //     continue;
-            // }
+            float dist = sqrt(ni * ni + nj * nj) / sqrt(2.0);
 
-            float lvn = read(vec2(float(i), float(j)));
+            float weight;
 
-            // float weight = 1.0 - ni * ni - nj * nj; // bugged, sharp corners (og)
-            // float weight = 1.0 - sqrt(ni * ni + nj * nj); // needs large radius
-            // float weight = SEARCH_DIAMETER_F - sqrt(ni * ni + nj * nj); // wtf
-            float weight = SEARCH_DIAMETER_F - sqrt(ni * ni + nj * nj) * (SEARCH_RADIUS_F - 1.0); // wtf but bigger spirals!?
-            // float weight = 1.0; // functionally the same as the one above, i think
+            // weight = 1.0 - ni * ni - nj * nj; // bugged, sharp corners (og)
+            // weight = 1.0 - sqrt(ni * ni + nj * nj); // needs large radius
+            // weight = SEARCH_DIAMETER_F - sqrt(ni * ni + nj * nj); // wtf
+            // weight = SEARCH_DIAMETER_F - sqrt(ni * ni + nj * nj) * (SEARCH_RADIUS_F - 1.0); // wtf but bigger spirals!?
+            // weight = 1.0; // functionally the same as the one above, i think
+
+            // weight = 1.0 - dist;
+            // weight = dist; // as in, further away is better
+
+            weight = 1.0 - (pow(dist, 2.0) * 0.75);
+            // weight = pow(weight, 1.0);
 
             // higher values here mean smoother growth, kind of like zooming in
             // randomness here is very important to keep it alive
-            weight = weight * smoothstep(rand_range(0.5, 0.65) * range_mul, 0.7 * range_mul, lvn);
+            float lvn_threshold = rand_range(TAKEOVER_THRESHOLD_LOWER, TAKEOVER_THRESHOLD_UPPER) * range_mul;
+            // weight = weight * smoothstep(
+            //     lvn_threshold * 0.95,
+            //     lvn_threshold * 1.05,
+            //     lvn
+            // );
+            weight = weight * step(lvn_threshold, lvn);
 
             // having a higher weight randomization here seems to make things worse?
             // like it decays quicker
-            val += lvn * rand_range(0.95, 1.05) * weight;
+            // val += lvn * rand_range(0.95, 1.05) * weight;
+            val += lvn * weight;
             n += weight;
         }
     }
