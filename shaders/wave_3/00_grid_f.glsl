@@ -5,8 +5,8 @@ const float SEARCH_RADIUS_F = float(SEARCH_RADIUS);
 const float SEARCH_DIAMETER_F = float(SEARCH_DIAMETER);
 
 
-const float FADE_THRESHOLD_LOWER = 0.05;
-const float FADE_THRESHOLD_UPPER = 0.50;
+const float FADE_THRESHOLD_LOWER = 0.00;
+const float FADE_THRESHOLD_UPPER = 0.30;
 
 const float STAY_THRESHOLD_LOWER = 0.30;
 const float STAY_THRESHOLD_UPPER = 0.40;
@@ -76,8 +76,20 @@ float read(vec2 coord_) {
     // }
 
     // return read_coord_wrap(buff00, coord_).r;
-    return read_coord_default(buff00, coord_, vec4(rand_random())).r;
+    // return read_coord_default(buff00, coord_, vec4(rand_random())).r;
     // return read_coord_mirror(buff00, coord_).r;
+
+    float outside;
+
+    outside = (
+        sin((uv_centered_asp.x * uv_centered_asp.y) * PI2 * 16.0 + time_tan(60.0))
+        * cos((uv_centered_asp.x * uv_centered_asp.y) * PI2 * 2.0 + time_tan(60.0))
+    );
+
+    outside = norm(outside, -1.0, 1.0);
+    // outside = smoothstep(0.4, 0.6, outside);
+
+    return read_coord_default(buff00, coord_, vec4(outside)).r;
 }
 
 float grow() {
@@ -131,7 +143,7 @@ float grow() {
             // weight = 1.0 - dist;
             // weight = dist; // as in, further away is better
 
-            weight = 1.0 - (pow(dist, 2.0) * 0.75);
+            weight = 1.0 - (pow(dist, 2.0) * 0.9);
             // weight = pow(weight, 1.0);
 
             // higher values here mean smoother growth, kind of like zooming in
@@ -165,7 +177,7 @@ float init() {
 
 vec4 render()
 {
-    // if (uv.y > SPLIT_BLEND_B) {
+   // if (uv.y > SPLIT_BLEND_B) {
     //     discard;
     // }
 
