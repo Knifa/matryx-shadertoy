@@ -507,11 +507,11 @@ public:
     program.add_argument("--publish-layers").default_value(false).implicit_value(true);
     program.add_argument("--time-scale").default_value(1.0f).scan<'f', float>();
 
-    program.add_argument("--matryx-endpoint").default_value(std::string("ipc:///var/run/matryx"));
+    program.add_argument("--matryx-endpoint").default_value(std::string("ipc:///tmp/matryx.sock"));
     program.add_argument("--layers-endpoint")
-        .default_value(std::string("ipc:///var/run/matryx-shadertoy-layers"));
+        .default_value(std::string("ipc:///tmp/matryx-shadertoy-layers.sock"));
     program.add_argument("--output-endpoint")
-        .default_value(std::string("ipc:///var/run/matryx-shadertoy-output"));
+        .default_value(std::string("ipc:///tmp/matryx-shadertoy-output.sock"));
 
     try {
       program.parse_args(argc, argv);
