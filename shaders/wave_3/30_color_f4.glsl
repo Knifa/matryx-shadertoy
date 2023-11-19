@@ -28,7 +28,7 @@ vec4 render()
   l = remap(
     lx,
     0.0, 1.0,
-    0.1, 1.0
+    0.0, 1.0
   );
 
   // Apply L split.
@@ -63,16 +63,16 @@ vec4 render()
   c = remap(
       cx,
       0.0, 1.0,
-      0.1, 0.15
+      0.0, 0.15
   );
 
-  c *= remap(
-    (
-      cos(uv_.y * (PI / 2.35) + time_norm(45.0))
-      * sin(uv_.x * (PI / 4.6) + time_norm(47.0))
-      * cos(uv_.y * (PI / 2.5) + time_norm(69.0))
-    ), -1.0, 1.0, 0.5, 1.0
-  );
+  // c *= remap(
+  //   (
+  //     cos(uv_.y * (PI / 2.35) + time_norm(45.0))
+  //     * sin(uv_.x * (PI / 4.6) + time_norm(47.0))
+  //     * cos(uv_.y * (PI / 2.5) + time_norm(69.0))
+  //   ), -1.0, 1.0, 0.5, 1.0
+  // );
 
   // Apply C split.
   // c = mix(
@@ -83,14 +83,14 @@ vec4 render()
 
   // ===========================================================================
 
-  h = pow(x, 1.5) * 270.0;
+  h = pow(x, 1.5) * 180.0;
 
   h +=
     (
       sin(uv_.y * (PI / 3.0) + time_norm(55.0))
-      + cos(uv_.x * (PI / 4.0) + time_norm(65.0))
+      + cos(uv_.x * (PI / 7.0) + time_norm(65.0))
     ) * 270.0;
-  h += uv_.y * 60.0 + uv_.x * 60.0;
+  h += uv_.y * 60.0 + uv_.x * 40.0;
   h += time_norm(60.0) * 360.0;
 
   // Apply H split.

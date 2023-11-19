@@ -94,7 +94,7 @@ vec4 render() {
     mix(
       convolution(sharpen, buffPrev, coord).x,
       convolution(gaussian_blur, buffPrev, coord).x,
-      0.25
+      0.9
     ),
     0.5
   );

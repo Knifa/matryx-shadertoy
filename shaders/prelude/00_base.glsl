@@ -37,11 +37,11 @@ const vec4 ONE4 = vec4(1.0, 1.0, 1.0, 1.0);
 
 // =============================================================================
 
-vec2 uv;
-vec2 uv_asp;
-vec2 uv_centered;
-vec2 uv_centered_asp;
-vec2 coord;
+vec2 uv = ZERO2;
+vec2 uv_asp = ZERO2;
+vec2 uv_centered = ZERO2;
+vec2 uv_centered_asp = ZERO2;
+vec2 coord = ZERO2;
 
 vec2 coord2uv(const vec2 coord) {
     return coord / resolution;

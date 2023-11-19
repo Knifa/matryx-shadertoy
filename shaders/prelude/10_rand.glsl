@@ -272,8 +272,8 @@ float _rand_unorm(uint n) { return float(n) * (1.0 / float(0xffffffffU)); }
 
 // =============================================================================
 
-Random rand_rng;
-Random rand_rng_uv;
+Random rand_rng = Random(0u, 0u);
+Random rand_rng_uv = Random(0u, 0u);
 
 float rand_random() { return rand_random_seeded(rand_rng); }
 vec2 rand_random2() { return rand_random2_seeded(rand_rng); }

@@ -1,8 +1,16 @@
 const float crop = 0.0;
-const float smoothCrop = 24.0;
+const float smoothCrop = 0.0;
 
 vec4 render() {
-  vec4 o = read_coord(buffPrev, coord);
+  vec4 o;
+  if (wave_outside_bounds()) {
+    float w = read_coord(buff00, coord).x;
+    o = vec4(w, w, w, 1.0);
+  } else {
+    o = read_coord(buffPrev, coord);
+  }
+
+  // ===========================================================================
 
   vec2 crop_step = (
     vec2(

@@ -6,7 +6,7 @@ vec4 render()
     float e, q;
 
     e = abs(uv_centered.y);
-    e = smoothstep(0.0, 8.0, e) * 1.0 + 0.018;
+    e = smoothstep(0.0, 3.0, e) * 1.0 + 0.018;
 
     q = sign(uv_centered.y) * e;
     q = pow(q, 2.0);
@@ -17,7 +17,7 @@ vec4 render()
     );
 
     outside = norm(outside, -1.0, 1.0);
-    outside = smoothstep(0.0, 1.0, outside) * outside;
+    outside = smoothstep(0.45, 0.8, outside);
 
     return vec4(
         outside,
