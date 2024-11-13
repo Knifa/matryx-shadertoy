@@ -7,6 +7,20 @@ vec4 read_coord_wrap(sampler2D buff, vec2 coord) {
   return read_coord(buff, mod(coord, resolution));
 }
 
+// Wrap and flip coordinates out of bounds.
+vec4 read_coord_wrap_flip(sampler2D buff, vec2 coord) {
+  if (coord.y < 0.0 || coord.y >= resolution.y) {
+    coord.x = resolution.x - coord.x;
+    coord.y = mod(coord.y, resolution.y);
+  }
+
+  if (coord.x < 0.0 || coord.x >= resolution.x) {
+    coord.x = mod(coord.x, resolution.x);
+    coord.y = resolution.y - coord.y;
+  }
+  return read_coord(buff, coord);
+}
+
 // Clamp (i.e., repeat last) coordinates out of bounds.
 vec4 read_coord_clamp(sampler2D buff, vec2 coord) {
   coord = clamp(coord, vec2(0.0), resolution - 1.0);
