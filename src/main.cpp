@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
@@ -118,7 +119,7 @@ public:
              ShaderErrorParser &errorParser) {
     program = glCreateProgram();
 
-    if (program == 0) {w
+    if (program == 0) {
       std::cerr << "Failed to create shader program" << std::endl;
       throw;
     }
@@ -374,7 +375,7 @@ public:
       std::string bufferDecls = "";
       std::map<std::string, std::string> bufferPrefixToInternal;
 
-      for (auto i = 0; i < shaderFiles.size(); i++) {
+      for (std::size_t i = 0; i < shaderFiles.size(); i++) {
         auto &file = shaderFiles[i];
         auto baseName = file.stem().string();
 
@@ -427,7 +428,7 @@ public:
 
         ShaderLocations shaderLocations = preludeLocations;
         int id = shaderLocations.add(path);
-        auto source = preludeSource + getLocationLine(path, id) + gl::getShaderSource(path);
+        auto source = preludeSource + getLocationLine(id) + gl::getShaderSource(path);
 
         ShaderDataType type = ShaderDataType::UintVec4;
         if (path.stem().string().ends_with("_f")) {
@@ -451,14 +452,14 @@ public:
     }
 
     // Wire up buffers.
-    for (auto i = 0; i < newShaderObjects.size(); i++) {
+    for (std::size_t i = 0; i < newShaderObjects.size(); i++) {
       auto &shader = newShaderObjects[i];
       glUseProgram(shader->program);
 
       glUniform1i(shader->buffPrevLoc, i == 0 ? 0 : i - 1);
       glUniform1i(shader->buffThisLoc, i);
 
-      for (auto j = 0; j < shader->buffLocs.size(); j++) {
+      for (std::size_t j = 0; j < shader->buffLocs.size(); j++) {
         glUniform1i(shader->buffLocs[j], j);
       }
 
@@ -477,7 +478,7 @@ private:
                          const std::string &name, const std::string &source) {
 
     int preludeId = preludeLocations.add(name);
-    preludeSource += getLocationLine(name, preludeId);
+    preludeSource += getLocationLine(preludeId);
     preludeSource += source;
   }
 
@@ -489,7 +490,7 @@ private:
     }
   }
 
-  static std::string getLocationLine(const std::string &name, int id) {
+  static std::string getLocationLine(int id) {
     if (id == 0) {
       return "";
     }
@@ -595,7 +596,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (args.debugBuffer != -1 && args.debugBuffer >= shaderManager.shaderObjects.size()) {
+  if (args.debugBuffer != -1 && args.debugBuffer >= static_cast<int>(shaderManager.shaderObjects.size())) {
     std::cerr << "Invalid debug buffer: " << args.debugBuffer << ", but only "
               << shaderManager.shaderObjects.size() << " buffers exist" << std::endl;
     return 1;
@@ -634,7 +635,10 @@ int main(int argc, char *argv[]) {
   auto nextCheck = std::chrono::steady_clock::now();
   auto lastShaderModified = std::chrono::file_clock::now();
 
-  uint32_t outPixels[shaderManager.size()][gl::width * gl::height];
+  std::vector<std::vector<uint32_t>> outPixels(shaderManager.size());
+  for (auto i = 0; i < shaderManager.size(); i++) {
+    outPixels[i].resize(gl::width * gl::height);
+  }
 
   glBindFramebuffer(GL_FRAMEBUFFER, fb);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer);
@@ -702,7 +706,7 @@ int main(int argc, char *argv[]) {
 
       gl::drawPlane();
       if (args.publishLayers || i == targetBuffer) {
-        glReadPixels(0, 0, gl::width, gl::height, GL_RGBA, GL_UNSIGNED_BYTE, outPixels[i]);
+        glReadPixels(0, 0, gl::width, gl::height, GL_RGBA, GL_UNSIGNED_BYTE, outPixels[i].data());
       }
     }
 
@@ -712,9 +716,9 @@ int main(int argc, char *argv[]) {
       glBindTexture(GL_TEXTURE_2D, bufferManager.fronts[i]);
     }
 
-    pixelserver::send(outPixels[targetBuffer]);
+    pixelserver::send(outPixels[targetBuffer].data());
     if (args.publishLayers) {
-      pixelserver::sendLayers(outPixels[0], shaderManager.size());
+      pixelserver::sendLayers(outPixels[0].data(), shaderManager.size());
     }
 
     timer.delayUntilNextFrame(tick);
