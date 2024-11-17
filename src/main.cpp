@@ -1,14 +1,11 @@
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <memory>
-#include <regex>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include <glad/egl.h>
@@ -17,24 +14,49 @@
 #include <argparse/argparse.hpp>
 #include <zmq.hpp>
 
-#include "ansi.hpp"
 #include "gl.hpp"
 #include "pixelserver.hpp"
 #include "timer.hpp"
 
 struct ShaderLocation {
   std::string name;
-  int startingLine;
+  int id;
+};
+
+class ShaderLocations {
+private:
+  std::vector<ShaderLocation> locations;
+
+public:
+  ShaderLocations() : locations() {}
+  ShaderLocations(ShaderLocations &other) : locations(other.locations) {}
+
+  int add(std::string name) {
+    locations.push_back({name, static_cast<int>(locations.size())});
+    return locations.size() - 1;
+  }
+
+  std::size_t size() { return locations.size(); }
+
+  ShaderLocation operator[](int index) { return locations[index]; }
+  ShaderLocations &operator=(const ShaderLocations &other) {
+    if (this != &other) {
+      locations = other.locations;
+    }
+    return *this;
+  }
+
+  std::vector<ShaderLocation>::iterator begin() { return locations.begin(); }
+  std::vector<ShaderLocation>::iterator end() { return locations.end(); }
 };
 
 class ShaderErrorParser {
 private:
-  std::vector<ShaderLocation> shaderLocations;
+  ShaderLocations shaderLocations;
 
 public:
   ShaderErrorParser() : shaderLocations() {}
-  ShaderErrorParser(std::vector<ShaderLocation> shaderLocations)
-      : shaderLocations(shaderLocations) {}
+  ShaderErrorParser(ShaderLocations shaderLocations) : shaderLocations(shaderLocations) {}
 
   void parse(const std::string_view error) {
     if (shaderLocations.size() == 0) {
@@ -66,14 +88,12 @@ public:
         continue;
       }
 
-      auto lineNumber = std::stoi(std::string(line.substr(colonPos + 1))) - 1;
-      auto shaderLocation = std::find_if(shaderLocations.rbegin(), shaderLocations.rend(),
-                                         [lineNumber](ShaderLocation &shaderLocation) {
-                                           return shaderLocation.startingLine <= lineNumber;
-                                         });
+      auto idNumber = std::stoi(std::string(line.substr(0, colonPos)));
+      auto lineNumber = std::stoi(std::string(line.substr(colonPos + 1)));
 
-      auto shaderName = shaderLocation->name;
-      auto shaderLine = lineNumber - shaderLocation->startingLine + 1;
+      auto shaderLocation = shaderLocations[idNumber];
+      auto shaderName = shaderLocation.name;
+      auto shaderLine = lineNumber;
 
       std::string errorOut = shaderName + ":" + std::to_string(shaderLine) + ":" +
                              std::string(line.substr(messagePos + 1));
@@ -98,7 +118,7 @@ public:
              ShaderErrorParser &errorParser) {
     program = glCreateProgram();
 
-    if (program == 0) {
+    if (program == 0) {w
       std::cerr << "Failed to create shader program" << std::endl;
       throw;
     }
@@ -276,9 +296,9 @@ public:
       : shadersBaseDirPath(shadersBaseDirPath), shaderName(shaderName) {}
 
   void load() {
-    int preludeLineCounter = 0;
     std::string preludeSource;
-    std::vector<ShaderLocation> preludeLocations;
+    ShaderLocations preludeLocations;
+
     std::vector<std::unique_ptr<Shader>> newShaderObjects;
     std::vector<std::filesystem::path> newLoadedPaths;
 
@@ -331,7 +351,7 @@ public:
                           shaderPreludeFiles.end());
     newLoadedPaths.insert(newLoadedPaths.end(), shaderFiles.begin(), shaderFiles.end());
 
-    addPreludeFiles(preludeSource, preludeLocations, preludeLineCounter, preludeFiles);
+    addPreludeFiles(preludeSource, preludeLocations, preludeFiles);
 
     {
       // Define buffers such that:
@@ -391,27 +411,23 @@ public:
         std::cout << "BUFFER: " << buffPrefix << " -> " << bufferInternal << std::endl;
       }
 
-      addPrelude(preludeSource, preludeLocations, preludeLineCounter, "<buffer decls>",
-                 bufferDecls);
+      addPrelude(preludeSource, preludeLocations, "<buffer decls>", bufferDecls);
     }
 
-    addPreludeFiles(preludeSource, preludeLocations, preludeLineCounter, shaderPreludeFiles);
+    addPreludeFiles(preludeSource, preludeLocations, shaderPreludeFiles);
 
-    std::cout << "PRELUDE LOCATIONS: " << std::endl;
-
+    std::cout << "PRELUDE IDS: " << std::endl;
     for (const auto &location : preludeLocations) {
-      std::cout << std::setw(4) << location.startingLine << " " << location.name << std::endl;
+      std::cout << std::setw(4) << location.id << " " << location.name << std::endl;
     }
 
     try {
       for (const auto &path : shaderFiles) {
         std::cout << "BUILDING SHADER: " << path;
 
-        auto source = gl::getShaderSource(path);
-        source = preludeSource + source;
-
-        std::vector<ShaderLocation> shaderLocations(preludeLocations);
-        shaderLocations.push_back({path, preludeLineCounter});
+        ShaderLocations shaderLocations = preludeLocations;
+        int id = shaderLocations.add(path);
+        auto source = preludeSource + getLocationLine(path, id) + gl::getShaderSource(path);
 
         ShaderDataType type = ShaderDataType::UintVec4;
         if (path.stem().string().ends_with("_f")) {
@@ -457,24 +473,28 @@ public:
   std::unique_ptr<Shader> &operator[](int index) { return shaderObjects[index]; }
 
 private:
-  static void addPrelude(std::string &preludeSource, std::vector<ShaderLocation> &preludeLocations,
-                         int &preludeLineCounter, const std::string &name,
-                         const std::string &source) {
-    preludeSource += source;
+  static void addPrelude(std::string &preludeSource, ShaderLocations &preludeLocations,
+                         const std::string &name, const std::string &source) {
 
-    auto numLines = std::count(source.begin(), source.end(), '\n');
-    preludeLocations.push_back({name, preludeLineCounter});
-    preludeLineCounter += numLines;
+    int preludeId = preludeLocations.add(name);
+    preludeSource += getLocationLine(name, preludeId);
+    preludeSource += source;
   }
 
-  static void addPreludeFiles(std::string &preludeSource,
-                              std::vector<ShaderLocation> &preludeLocations,
-                              int &preludeLineCounter,
+  static void addPreludeFiles(std::string &preludeSource, ShaderLocations &preludeLocations,
                               const std::vector<std::filesystem::path> &paths) {
     for (const auto &path : paths) {
       auto source = gl::getShaderSource(path);
-      addPrelude(preludeSource, preludeLocations, preludeLineCounter, path, source);
+      addPrelude(preludeSource, preludeLocations, path, source);
     }
+  }
+
+  static std::string getLocationLine(const std::string &name, int id) {
+    if (id == 0) {
+      return "";
+    }
+
+    return "#line 1 " + std::to_string(id) + "\n";
   }
 };
 
@@ -507,7 +527,8 @@ public:
     program.add_argument("--publish-layers").default_value(false).implicit_value(true);
     program.add_argument("--time-scale").default_value(1.0f).scan<'f', float>();
 
-    program.add_argument("--matryx-endpoint").default_value(std::string("ipc:///tmp/matrix-frames.sock"));
+    program.add_argument("--matryx-endpoint")
+        .default_value(std::string("ipc:///tmp/matrix-frames.sock"));
     program.add_argument("--layers-endpoint")
         .default_value(std::string("ipc:///tmp/matryx-shadertoy-layers.sock"));
     program.add_argument("--output-endpoint")
