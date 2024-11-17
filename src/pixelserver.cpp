@@ -17,8 +17,7 @@ static int height;
 
 namespace pixelserver {
 void setup(const int width, const int height, const std::string &matryxEndpoint,
-           const std::string &layersEndpoint,
-           const std::string &outputEndpoint) {
+           const std::string &layersEndpoint, const std::string &outputEndpoint) {
 
   ::width = width;
   ::height = height;
