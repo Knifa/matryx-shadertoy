@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <iomanip>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
@@ -13,6 +12,10 @@
 #include <glad/gles2.h>
 
 #include <argparse/argparse.hpp>
+#include <plog/Appenders/ColorConsoleAppender.h>
+#include <plog/Formatters/FuncMessageFormatter.h>
+#include <plog/Init.h>
+#include <plog/Log.h>
 #include <zmq.hpp>
 
 #include "gl.hpp"
@@ -61,7 +64,7 @@ public:
 
   void parse(const std::string_view error) {
     if (shaderLocations.size() == 0) {
-      std::cerr << error << std::endl;
+      PLOG_ERROR << error;
       return;
     }
 
@@ -99,7 +102,7 @@ public:
       std::string errorOut = shaderName + ":" + std::to_string(shaderLine) + ":" +
                              std::string(line.substr(messagePos + 1));
 
-      std::cerr << errorOut << std::endl;
+      PLOG_ERROR << errorOut;
     }
   }
 };
@@ -120,13 +123,13 @@ public:
     program = glCreateProgram();
 
     if (program == 0) {
-      std::cerr << "Failed to create shader program" << std::endl;
+      PLOG_FATAL << "Failed to create shader program";
       throw;
     }
 
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     if (fragmentShader == 0) {
-      std::cerr << "Failed to create fragment shader" << std::endl;
+      PLOG_FATAL << "Failed to create fragment shader";
       throw;
     }
 
@@ -137,7 +140,7 @@ public:
     GLint shaderCompiled;
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &shaderCompiled);
     if (shaderCompiled == GL_FALSE) {
-      std::cerr << "Failed to compile fragment shader" << std::endl;
+      PLOG_ERROR << "Failed to compile fragment shader";
 
       GLint logLength;
       glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &logLength);
@@ -160,14 +163,14 @@ public:
     GLint programLinked;
     glGetProgramiv(program, GL_LINK_STATUS, &programLinked);
     if (programLinked == GL_FALSE) {
-      std::cerr << "Failed to link program" << std::endl;
+      PLOG_ERROR << "Failed to link program";
       GLint logLength;
       glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
 
       if (logLength > 0) {
         char *log = new char[logLength];
         glGetProgramInfoLog(program, logLength, &logLength, log);
-        std::cerr << log << std::endl;
+        PLOG_ERROR << log;
 
         delete[] log;
       }
@@ -259,7 +262,7 @@ public:
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
       if (glGetError() != GL_NO_ERROR) {
-        std::cerr << "Failed to create framebuffer texture" << std::endl;
+        PLOG_FATAL << "Failed to create framebuffer texture";
         throw std::runtime_error("Failed to create framebuffer texture");
       }
     }
@@ -306,9 +309,9 @@ public:
     std::filesystem::path preludeDirPath = shadersBaseDirPath / "prelude";
     std::filesystem::path shaderDirPath = shadersBaseDirPath / shaderName;
 
-    std::cout << "Shaders base dir: " << shadersBaseDirPath << std::endl;
-    std::cout << "Prelude dir: " << preludeDirPath << std::endl;
-    std::cout << "Shader dir: " << shaderDirPath << std::endl;
+    PLOG_INFO << "Shaders base dir: " << shadersBaseDirPath;
+    PLOG_INFO << "Prelude dir: " << preludeDirPath;
+    PLOG_INFO << "Shader dir: " << shaderDirPath;
 
     auto vertexShader = gl::getVertexShader(shadersBaseDirPath / "vertex.glsl");
 
@@ -323,7 +326,7 @@ public:
         continue;
       }
 
-      std::cout << "PRELUDE: Found " << path << std::endl;
+      PLOG_INFO << "PRELUDE: Found " << path;
       preludeFiles.push_back(path);
     }
 
@@ -335,10 +338,10 @@ public:
       }
 
       if (path.filename().string().starts_with("prelude")) {
-        std::cout << "SHADER PRELUDE: Found" << path << std::endl;
+        PLOG_INFO << "SHADER PRELUDE: Found" << path;
         shaderPreludeFiles.push_back(path);
       } else {
-        std::cout << "SHADER: Found " << path << std::endl;
+        PLOG_INFO << "SHADER: Found " << path;
         shaderFiles.push_back(path);
       }
     }
@@ -395,7 +398,7 @@ public:
         bufferDecls += "uniform sampler2D " + buffInternal + ";\n";
         bufferDecls += "#define " + buffFull + " " + buffInternal + "\n";
 
-        std::cout << "BUFFER: " << buffInternal << " -> " << buffFull << std::endl;
+        PLOG_DEBUG << "BUFFER: " << buffInternal << " -> " << buffFull;
 
         // For primary-only buffers, these end up the same.
         auto buffPrefix = "buff" + prefix;
@@ -409,7 +412,7 @@ public:
         auto bufferInternal = pair.second;
 
         bufferDecls += "#define " + buffPrefix + " " + bufferInternal + "\n";
-        std::cout << "BUFFER: " << buffPrefix << " -> " << bufferInternal << std::endl;
+        PLOG_DEBUG << "BUFFER: " << buffPrefix << " -> " << bufferInternal;
       }
 
       addPrelude(preludeSource, preludeLocations, "<buffer decls>", bufferDecls);
@@ -417,14 +420,13 @@ public:
 
     addPreludeFiles(preludeSource, preludeLocations, shaderPreludeFiles);
 
-    std::cout << "PRELUDE IDS: " << std::endl;
+    PLOG_DEBUG << "PRELUDE IDS: ";
     for (const auto &location : preludeLocations) {
-      std::cout << std::setw(4) << location.id << " " << location.name << std::endl;
+      PLOG_DEBUG << std::setw(4) << location.id << " " << location.name;
     }
 
     try {
       for (const auto &path : shaderFiles) {
-        std::cout << "BUILDING SHADER: " << path;
 
         ShaderLocations shaderLocations = preludeLocations;
         int id = shaderLocations.add(path);
@@ -433,12 +435,12 @@ public:
         ShaderDataType type = ShaderDataType::UintVec4;
         if (path.stem().string().ends_with("_f")) {
           type = ShaderDataType::Float;
-          std::cout << " (FLOAT)" << std::endl;
+          PLOG_DEBUG << "BUILDING SHADER: " << path << " (FLOAT)";
         } else if (path.stem().string().ends_with("_f4")) {
           type = ShaderDataType::FloatVec4;
-          std::cout << " (FLOAT VEC4)" << std::endl;
+          PLOG_DEBUG << "BUILDING SHADER: " << path << " (FLOAT VEC4)";
         } else {
-          std::cout << " (UINT VEC4)" << std::endl;
+          PLOG_DEBUG << "BUILDING SHADER: " << path << " (UINT VEC4)";
         }
 
         ShaderErrorParser ShaderErrorParser(shaderLocations);
@@ -538,15 +540,15 @@ public:
     try {
       program.parse_args(argc, argv);
     } catch (const std::runtime_error &err) {
-      std::cout << err.what() << std::endl;
-      std::cout << program;
+      PLOG_FATAL << err.what();
+      PLOG_INFO << program;
       throw;
     }
 
     shadersBasePath = program.get<std::filesystem::path>("--shaders-base");
     shader = program.get<std::string>("shader");
     if (!std::filesystem::exists(shaderPath())) {
-      std::cerr << "Shader does not exist" << std::endl;
+      PLOG_ERROR << "Shader does not exist";
       throw;
     }
 
@@ -564,23 +566,26 @@ public:
   }
 
   void print() {
-    std::cout << "shader: " << shader << std::endl;
-    std::cout << "shadersBasePath: " << shadersBasePath << std::endl;
-    std::cout << "fpsLimit: " << fpsLimit << std::endl;
-    std::cout << "timeScale: " << timeScale << std::endl;
-    std::cout << "debugBuffer: " << debugBuffer << std::endl;
-    std::cout << "width: " << width << std::endl;
-    std::cout << "height: " << height << std::endl;
-    std::cout << "matryxEndpoint: " << matryxEndpoint << std::endl;
-    std::cout << "layersEndpoint: " << layersEndpoint << std::endl;
-    std::cout << "outputEndpoint: " << outputEndpoint << std::endl;
-    std::cout << "publishLayers: " << publishLayers << std::endl;
+    PLOG_DEBUG << "shader: " << shader;
+    PLOG_DEBUG << "shadersBasePath: " << shadersBasePath;
+    PLOG_DEBUG << "fpsLimit: " << fpsLimit;
+    PLOG_DEBUG << "timeScale: " << timeScale;
+    PLOG_DEBUG << "debugBuffer: " << debugBuffer;
+    PLOG_DEBUG << "width: " << width;
+    PLOG_DEBUG << "height: " << height;
+    PLOG_DEBUG << "matryxEndpoint: " << matryxEndpoint;
+    PLOG_DEBUG << "layersEndpoint: " << layersEndpoint;
+    PLOG_DEBUG << "outputEndpoint: " << outputEndpoint;
+    PLOG_DEBUG << "publishLayers: " << publishLayers;
   }
 
   std::filesystem::path shaderPath() { return shadersBasePath / shader; }
 };
 
 int main(int argc, char *argv[]) {
+  static plog::ColorConsoleAppender<plog::FuncMessageFormatter> consoleAppender;
+  plog::init(plog::debug, &consoleAppender);
+
   Args args(argc, argv);
   args.print();
 
@@ -592,13 +597,14 @@ int main(int argc, char *argv[]) {
   try {
     shaderManager.load();
   } catch (...) {
-    std::cerr << "Failed to load shaders!" << std::endl;
+    PLOG_FATAL << "Failed to load shaders!";
     return 1;
   }
 
-  if (args.debugBuffer != -1 && args.debugBuffer >= static_cast<int>(shaderManager.shaderObjects.size())) {
-    std::cerr << "Invalid debug buffer: " << args.debugBuffer << ", but only "
-              << shaderManager.shaderObjects.size() << " buffers exist" << std::endl;
+  if (args.debugBuffer != -1 &&
+      args.debugBuffer >= static_cast<int>(shaderManager.shaderObjects.size())) {
+    PLOG_FATAL << "Invalid debug buffer: " << args.debugBuffer << ", but only "
+               << shaderManager.shaderObjects.size() << " buffers exist";
     return 1;
   }
 
@@ -613,21 +619,21 @@ int main(int argc, char *argv[]) {
   GLuint fb;
   glGenFramebuffers(1, &fb);
   if (glGetError() != GL_NO_ERROR) {
-    std::cerr << "Failed to create framebuffer" << std::endl;
+    PLOG_FATAL << "Failed to create framebuffer";
     return 1;
   }
 
   GLuint renderBuffer;
   glGenRenderbuffers(1, &renderBuffer);
   if (glGetError() != GL_NO_ERROR) {
-    std::cerr << "Failed to create renderbuffer" << std::endl;
+    PLOG_FATAL << "Failed to create renderbuffer";
     return 1;
   }
 
   glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
   glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, gl::width, gl::height);
   if (glGetError() != GL_NO_ERROR) {
-    std::cerr << "Failed to allocate renderbuffer storage" << std::endl;
+    PLOG_FATAL << "Failed to allocate renderbuffer storage";
     return 1;
   }
 
@@ -654,7 +660,7 @@ int main(int argc, char *argv[]) {
 
       auto shaderDirLastModified = std::filesystem::last_write_time(args.shaderPath());
       if (shaderDirLastModified > lastShaderModified) {
-        std::cout << "SHADER DIR CHANGED!" << std::endl;
+        PLOG_INFO << "SHADER DIR CHANGED!";
         needReload = true;
         needBufferReload = true;
         lastShaderModified = shaderDirLastModified;
@@ -662,7 +668,7 @@ int main(int argc, char *argv[]) {
         for (auto &path : shaderManager.loadedPaths) {
           auto lastModified = std::filesystem::last_write_time(path);
           if (lastModified > lastShaderModified) {
-            std::cout << "SHADER FILE CHANGED: " << path << std::endl;
+            PLOG_INFO << "SHADER FILE CHANGED: " << path;
             needReload = true;
             lastShaderModified = lastModified;
             break;
@@ -683,7 +689,7 @@ int main(int argc, char *argv[]) {
             timer.reset();
           }
         } catch (...) {
-          std::cerr << "Failed to reload shaders!" << std::endl;
+          PLOG_ERROR << "Failed to reload shaders!";
         }
       }
 

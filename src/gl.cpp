@@ -1,7 +1,8 @@
 #include "gl.hpp"
 
 #include <fstream>
-#include <iostream>
+
+#include <plog/Log.h>
 
 static const GLfloat fullPlane[] = {-1.0f, -1.0f, 0.0f, 1.0f, -1.0f, +1.0f, 0.0f, 1.0f,
                                     +1.0f, -1.0f, 0.0f, 1.0f, +1.0f, +1.0f, 0.0f, 1.0f};
@@ -21,27 +22,27 @@ int setup(int width, int height) {
   gl::height = height;
 
   if (gladLoaderLoadEGL(NULL) == 0) {
-    std::cerr << "Failed to load EGL" << std::endl;
+    PLOG_FATAL << "Failed to load EGL";
     return 1;
   }
 
   EGLDeviceEXT devices[1];
   EGLint numDevices;
   if (!eglQueryDevicesEXT(1, devices, &numDevices)) {
-    std::cerr << "Failed to query EGL devices" << std::endl;
+    PLOG_FATAL << "Failed to query EGL devices";
 
     return 1;
   }
 
   EGLDisplay display = eglGetPlatformDisplayEXT(EGL_PLATFORM_DEVICE_EXT, devices[0], NULL);
   if (display == EGL_NO_DISPLAY) {
-    std::cerr << "Failed to get EGL display" << std::endl;
+    PLOG_FATAL << "Failed to get EGL display";
 
     return 1;
   }
 
   if (!eglInitialize(display, NULL, NULL)) {
-    std::cerr << "Failed to initialize EGL" << std::endl;
+    PLOG_FATAL << "Failed to initialize EGL";
 
     return 1;
   }
@@ -63,7 +64,7 @@ int setup(int width, int height) {
   EGLConfig config;
   EGLint numConfigs;
   if (!eglChooseConfig(display, configAttribs, &config, 1, &numConfigs)) {
-    std::cerr << "Failed to choose EGL config" << std::endl;
+    PLOG_FATAL << "Failed to choose EGL config";
 
     return 1;
   }
@@ -72,7 +73,7 @@ int setup(int width, int height) {
 
   EGLSurface surface = eglCreatePbufferSurface(display, config, surfaceAttribs);
   if (surface == EGL_NO_SURFACE) {
-    std::cerr << "Failed to create EGL surface" << std::endl;
+    PLOG_FATAL << "Failed to create EGL surface";
 
     return 1;
   }
@@ -81,25 +82,25 @@ int setup(int width, int height) {
 
   EGLContext context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttribs);
   if (context == EGL_NO_CONTEXT) {
-    std::cerr << "Failed to create EGL context" << std::endl;
+    PLOG_FATAL << "Failed to create EGL context";
 
     return 1;
   }
 
   if (!eglMakeCurrent(display, surface, surface, context)) {
-    std::cerr << "Failed to make EGL context current" << std::endl;
+    PLOG_FATAL << "Failed to make EGL context current";
 
     return 1;
   }
 
   if (gladLoaderLoadGLES2() == 0) {
-    std::cerr << "Failed to load OpenGL ES 2.0 functions" << std::endl;
+    PLOG_FATAL << "Failed to load OpenGL ES 2.0 functions";
     return 1;
   }
 
-  std::cout << "GL_VENDOR: " << glGetString(GL_VENDOR) << std::endl;
-  std::cout << "GL_RENDERER: " << glGetString(GL_RENDERER) << std::endl;
-  std::cout << "GL_VERSION: " << glGetString(GL_VERSION) << std::endl;
+  PLOG_DEBUG << "GL_VENDOR: " << glGetString(GL_VENDOR);
+  PLOG_DEBUG << "GL_RENDERER: " << glGetString(GL_RENDERER);
+  PLOG_DEBUG << "GL_VERSION: " << glGetString(GL_VERSION);
 
   glViewport(0, 0, gl::width, gl::height);
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -119,7 +120,7 @@ void drawPlane() {
 
 std::string getShaderSource(std::filesystem::path path) {
   if (!std::filesystem::exists(path)) {
-    std::cerr << "Shader does not exist: " << path << std::endl;
+    PLOG_FATAL << "Shader does not exist: " << path;
     throw;
   }
 
@@ -131,13 +132,13 @@ std::string getShaderSource(std::filesystem::path path) {
 
 GLuint getVertexShader(std::filesystem::path filename) {
   if (!std::filesystem::exists(filename)) {
-    std::cerr << "Vertex shader does not exist: " << filename << std::endl;
+    PLOG_FATAL << "Vertex shader does not exist: " << filename;
     throw;
   }
 
   GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
   if (vertexShader == 0) {
-    std::cerr << "Failed to create vertex shader" << std::endl;
+    PLOG_FATAL << "Failed to create vertex shader";
     throw;
   }
 
@@ -151,7 +152,7 @@ GLuint getVertexShader(std::filesystem::path filename) {
   glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vertexShaderCompiled);
 
   if (vertexShaderCompiled == GL_FALSE) {
-    std::cerr << "Failed to compile vertex shader" << std::endl;
+    PLOG_FATAL << "Failed to compile vertex shader";
 
     GLint logLength;
     glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &logLength);
@@ -159,8 +160,7 @@ GLuint getVertexShader(std::filesystem::path filename) {
     if (logLength > 0) {
       char *log = new char[logLength];
       glGetShaderInfoLog(vertexShader, logLength, &logLength, log);
-      std::cerr << "Shader log:" << std::endl;
-      std::cerr << log << std::endl;
+      PLOG_FATAL << log;
       delete[] log;
     }
 
