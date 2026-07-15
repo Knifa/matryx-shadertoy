@@ -4,6 +4,8 @@ vec4 render()
 
   // ===========================================================================
 
+  float v = read_coord(buffPrev, coord).x;
+
   float l, c, h;
   vec2 uv_ = uv_centered;
 
@@ -11,12 +13,12 @@ vec4 render()
 
   // ===========================================================================
 
-  float x = read_coord(buffPrev, coord).x;
+  float x = v;
 
   x = curve_interpolate_beizer(
     x,
-    vec2(0.5, 0.0),
-    vec2(0.5, 1.0)
+    vec2(0.7, 0.0),
+    vec2(0.6, 1.0)
   );
 
   x = clamp(x, 0.0, 1.0);
@@ -58,12 +60,18 @@ vec4 render()
 
   // ===========================================================================
 
-  float cx = pow(x, 1.5);
+  float cx = pow(x, 2.0);
+
+  // cx = curve_interpolate_beizer(
+  //   cx,
+  //   vec2(0.5, 0.0),
+  //   vec2(0.5, 1.0)
+  // );
 
   c = remap(
       cx,
       0.0, 1.0,
-      0.0, 0.15
+      0.0, 0.18
   );
 
   // c *= remap(
@@ -83,14 +91,16 @@ vec4 render()
 
   // ===========================================================================
 
-  h = pow(x, 1.5) * 180.0;
+  float hx = pow(x, 1.0);
+
+  h = hx * 270.0 * 2.0;
 
   h +=
     (
-      sin(uv_.y * (PI / 3.0) + time_norm(55.0))
-      + cos(uv_.x * (PI / 7.0) + time_norm(65.0))
+      sin(uv_.y * (PI / 5.0) + time_norm(55.0))
+      + cos(uv_.x * (PI / 5.0) + time_norm(65.0))
     ) * 270.0;
-  h += uv_.y * 60.0 + uv_.x * 40.0;
+  h += uv_.y * 50.0 + uv_.x * 50.0;
   h += time_norm(60.0) * 360.0;
 
   // Apply H split.

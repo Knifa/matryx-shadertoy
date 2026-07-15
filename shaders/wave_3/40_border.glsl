@@ -64,12 +64,12 @@ vec4 render() {
 
   float smooth_step_ = smooth_step.x * smooth_step.y;
 
-  vec3 u = SRGB_TO_LCH(o.rgb);
+  // vec3 u = SRGB_TO_LCH(o.rgb);
 
-  u.r = u.r * remap(pow(smooth_step_, 1.0 / 3.0), 0.0, 1.0, -0.2, 1.0);
-  u.g = u.g * remap(pow(smooth_step_, 1.0), 0.0, 1.0, 0.25, 1.0);
-  // u.b = u.b * remap(pow(smooth_step_, 1.0), 0.0, 1.0, 1.0, 2.0);
+  // u.r = u.r * remap(pow(smooth_step_, 1.0 / 3.0), 0.0, 1.0, -0.2, 1.0);
+  // u.g = u.g * remap(pow(smooth_step_, 1.0), 0.0, 1.0, 0.25, 1.0);
+  // // u.b = u.b * remap(pow(smooth_step_, 1.0), 0.0, 1.0, 1.0, 2.0);
 
-  u = LCH_TO_SRGB(u);
-  return vec4(u.rgb, 1.0);
+  // u = LCH_TO_SRGB(u);
+  return vec4(o.rgb, 1.0);
 }
